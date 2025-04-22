@@ -1,0 +1,12 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  ngx-auth-service:
+    build: .
+    container_name: ngx-auth-service
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
