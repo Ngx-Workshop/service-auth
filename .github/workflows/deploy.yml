@@ -30,6 +30,7 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /opt/ngx-nestjs-services/ngx-auth-service
+
             echo "🔑 Writing .env from GitHub secrets..."
             echo "PORT=${{ secrets.PORT }}" > .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
@@ -38,7 +39,9 @@ jobs:
             echo "JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}" >> .env
             echo "JWT_ACCESS_TOKEN_TTL=${{ secrets.JWT_ACCESS_TOKEN_TTL }}" >> .env
             echo "JWT_REFRESH_TOKEN_TTL=${{ secrets.JWT_REFRESH_TOKEN_TTL }}" >> .env
+
             echo "🚀 Building and starting container..."
             docker build -t ngx-auth-service .
-            docker stop ngx-auth-service || true && docker rm ngx-auth-service || true
+            docker stop ngx-auth-service || true
+            docker rm ngx-auth-service || true
             docker run -d --name ngx-auth-service --env-file .env -p 3000:3000 ngx-auth-service
