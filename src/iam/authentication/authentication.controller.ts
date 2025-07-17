@@ -21,10 +21,9 @@ import { UserAuthDto } from './dto/user-auth.dto';
 import { ActiveUser } from '../decorators/active-user.decorator';
 import { IActiveUserData } from '../interfaces/active-user-data.interface';
 
-
-
 const cookieOptions = {
-  secure: false,
+  domain: '.ngx-workshop.io',
+  secure: true,
   httpOnly: true,
   sameSite: true,
 };
