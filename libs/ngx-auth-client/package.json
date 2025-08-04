@@ -1,0 +1,18 @@
+{
+  "name": "@tmdjr/ngx-auth-client",
+  "version": "0.0.1",
+  "description": "NestJS Auth Client for remote access token validation",
+  "main": "index.js",
+  "types": "index.d.ts",
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@nestjs/axios": "^4.0.1",
+    "@nestjs/common": "^11.0.1",
+    "rxjs": "^7.8.1",
+    "axios": "^1.11.0"
+  },
+  "peerDependencies": {
+    "@nestjs/core": "^11.0.1"
+  }
+}

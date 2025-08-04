@@ -7,6 +7,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",
+    "build:ngx-auth-client": "nest build ngx-auth-client && cp libs/ngx-auth-client/package.json dist/libs/ngx-auth-client/package.json && cp libs/ngx-auth-client/README.md dist/libs/ngx-auth-client/README.md",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
     "start:dev": "nest start --watch",
