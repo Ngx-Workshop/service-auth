@@ -16,6 +16,14 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "strictBindCallApply": false,
-    "noFallthroughCasesInSwitch": false
+    "noFallthroughCasesInSwitch": false,
+    "paths": {
+      "ngx/ngx-auth-client": [
+        "libs/ngx-auth-client/src"
+      ],
+      "ngx/ngx-auth-client/*": [
+        "libs/ngx-auth-client/src/*"
+      ]
+    }
   }
 }

@@ -1,9 +1,17 @@
 {
-  "moduleFileExtensions": ["js", "json", "ts"],
+  "moduleFileExtensions": [
+    "js",
+    "json",
+    "ts"
+  ],
   "rootDir": ".",
   "testEnvironment": "node",
   "testRegex": ".e2e-spec.ts$",
   "transform": {
     "^.+\\.(t|j)s$": "ts-jest"
+  },
+  "moduleNameMapper": {
+    "ngx/ngx-auth-client": "<rootDir>/../libs/ngx-auth-client/src",
+    "ngx/ngx-auth-client/(.*)": "<rootDir>/../libs/ngx-auth-client/src/$1"
   }
 }

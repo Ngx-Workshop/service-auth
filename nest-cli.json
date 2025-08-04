@@ -3,6 +3,18 @@
   "collection": "@nestjs/schematics",
   "sourceRoot": "src",
   "compilerOptions": {
-    "deleteOutDir": true
+    "deleteOutDir": true,
+    "webpack": true
+  },
+  "projects": {
+    "ngx-auth-client": {
+      "type": "library",
+      "root": "libs/ngx-auth-client",
+      "entryFile": "index",
+      "sourceRoot": "libs/ngx-auth-client/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/ngx-auth-client/tsconfig.lib.json"
+      }
+    }
   }
 }
