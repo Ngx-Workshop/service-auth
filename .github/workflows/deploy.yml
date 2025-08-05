@@ -39,6 +39,9 @@ jobs:
             echo "JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}" >> .env
             echo "JWT_ACCESS_TOKEN_TTL=${{ secrets.JWT_ACCESS_TOKEN_TTL }}" >> .env
             echo "JWT_REFRESH_TOKEN_TTL=${{ secrets.JWT_REFRESH_TOKEN_TTL }}" >> .env
+            echo "NODE_ENV=${{ secrets.JWT_REFRESH_TOKEN_TTL }}" >> .env
+            echo "DOMAIN=${{ secrets.JWT_REFRESH_TOKEN_TTL }}" >> .env
+
 
             echo "🚀 Building and starting container..."
             docker build -t ngx-auth-service .
