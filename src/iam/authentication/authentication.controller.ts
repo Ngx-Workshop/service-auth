@@ -22,7 +22,6 @@ import { ActiveUser } from '../decorators/active-user.decorator';
 import { IActiveUserData } from '../interfaces/active-user-data.interface';
 
 
-console.log('AuthenticationController loaded', process.env.NODE_ENV);
 const cookieOptions = {
   domain: process.env.DOMAIN || 'localhost',
   secure: process.env.NODE_ENV === 'production',
@@ -52,7 +51,6 @@ export class AuthenticationController {
     @Body() userAuthDto: UserAuthDto,
   ) {
     const jwt = await this.authService.signIn(userAuthDto);
-    console.log('JWT:', cookieOptions);
     response.cookie('accessToken', jwt.accessToken, cookieOptions);
   }
 
