@@ -7,7 +7,7 @@ import { Request } from 'express';
 export class AuthClientService {
   constructor(private httpService: HttpService) {}
 
-  private readonly baseUrl = process.env.AUTH_BASE_URL ?? 'https://auth.ngx-workshop.io/api';
+  private readonly baseUrl = process.env.AUTH_BASE_URL ?? 'https://auth.ngx-workshop.io';
   async validateAccessToken(request: Request): Promise<boolean> {
     // Grab token from cookies or headers as your guard does
     const accessToken = request.cookies?.accessToken || request.headers['authorization']?.replace('Bearer ', '');
@@ -17,7 +17,7 @@ export class AuthClientService {
     try {
       // Hit the auth service endpoint
       const res = await firstValueFrom(
-        this.httpService.get(`${this.baseUrl}/validate-access-token`, {
+        this.httpService.get(`${this.baseUrl}/api/validate-access-token`, {
           headers: {
             Cookie: `accessToken=${accessToken}`,
           },
