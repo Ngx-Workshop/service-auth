@@ -31,6 +31,9 @@ jobs:
           script: |
             cd /opt/ngx-nestjs-services/ngx-auth-service
 
+            echo "🌐 Ensuring shared Docker network exists..."
+            docker network ls | grep -q "ngx-net" || docker network create ngx-net
+
             echo "🔑 Writing .env from GitHub secrets..."
             echo "PORT=${{ secrets.PORT }}" > .env
             echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
@@ -42,9 +45,18 @@ jobs:
             echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
             echo "DOMAIN=${{ secrets.DOMAIN }}" >> .env
 
+            echo "🔗 Connecting peer services to ngx-net (ignore errors if not present)..."
+            docker network connect ngx-net ngx-mfe-orchestrator 2>/dev/null || true
+            docker network connect ngx-net ngx-workshop-bff 2>/dev/null || true
 
             echo "🚀 Building and starting container..."
             docker build -t ngx-auth-service .
             docker stop ngx-auth-service || true
             docker rm ngx-auth-service || true
-            docker run -d --name ngx-auth-service --env-file .env -p 3000:3000 ngx-auth-service
+            docker run -d \
+              --name ngx-auth-service \
+              --env-file .env \
+              --network ngx-net \
+              --restart unless-stopped \
+              -p 3000:3000 \
+              ngx-auth-service
