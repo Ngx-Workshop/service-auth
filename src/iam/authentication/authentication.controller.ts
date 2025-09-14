@@ -64,8 +64,8 @@ export class AuthenticationController {
   @Auth(AuthType.Bearer)
   @HttpCode(HttpStatus.OK)
   @Get('validate-access-token')
-  isLoggedIn(): { authenticated: boolean } {
-    return { authenticated: true };
+  isLoggedIn(): boolean {
+    return true;
   }
 
   @Auth(AuthType.Bearer)
