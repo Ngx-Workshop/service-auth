@@ -34,6 +34,13 @@ const cookieOptions = {
 export class AuthenticationController {
   constructor(private readonly authService: AuthenticationService) {}
 
+  @Auth(AuthType.Bearer)
+  @HttpCode(HttpStatus.OK)
+  @Get('auth')
+  isLoggedIn(): boolean {
+    return true;
+  }
+
   @Post('sign-up')
   async signUp(
     @Res({ passthrough: true }) response: Response,
@@ -63,15 +70,8 @@ export class AuthenticationController {
 
   @Auth(AuthType.Bearer)
   @HttpCode(HttpStatus.OK)
-  @Get('validate-access-token')
-  isLoggedIn(): boolean {
-    return true;
-  }
-
-  @Auth(AuthType.Bearer)
-  @HttpCode(HttpStatus.OK)
   @Get('user-metadata')
-  async getUserMetadata(@ActiveUser() user: IActiveUserData ) { 
+  async getUserMetadata(@ActiveUser() user: IActiveUserData ) {
     return {
       email: user.email,
       role: user.role
