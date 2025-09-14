@@ -9,6 +9,8 @@ export class AuthClientService {
 
   private readonly baseUrl = process.env.AUTH_BASE_URL ?? 'https://auth.ngx-workshop.io';
   async validateAccessToken(request: Request): Promise<boolean> {
+
+    console.log('Validating access token via remote auth service...');
     // Grab token from cookies or headers as your guard does
     const accessToken = request.cookies?.accessToken || request.headers['authorization']?.replace('Bearer ', '');
     if (!accessToken) {
