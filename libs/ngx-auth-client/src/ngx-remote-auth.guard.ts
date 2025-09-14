@@ -7,7 +7,6 @@ export class RemoteAuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    console.log('RemoteAuthGuard: Checking access token via remote auth service...');
     return this.authClientService.validateAccessToken(request);
   }
 }
