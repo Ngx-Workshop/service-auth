@@ -55,7 +55,10 @@ export class AuthenticationService {
       );
     } catch (err) {
       this.logger.warn(
-        `Failed to upsert UserMetadata for ${userId}: ${String(err)}`,
+        `Failed to upsert UserMetadata for ${userId}: ${String(err)} : Body: ${JSON.stringify(
+          err?.response?.data,
+        )} Status: ${err?.response?.status}
+        `,
       );
       // Non-blocking on purpose
     }
