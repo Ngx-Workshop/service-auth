@@ -2,24 +2,22 @@ import {
   ConflictException,
   Inject,
   Injectable,
+  Logger,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
+import axios from 'axios';
 import { Model, Types } from 'mongoose';
-// TODO: REPLACE THIS WITH THE SHARED NPM PACKAGE
-// import { IActiveUserData } from '../../../interfaces/active-user-data.interface';
-// import { IUser } from '../../../interfaces/user.interface';
-// import { MongoErrorCodes } from '../../../enums/mongo-error-codes.enum';
+import jwtConfig from '../config/jwt.config';
+import { MongoErrorCodes } from '../enums/mongo-error-codes.enum';
+import { HashingService } from '../hashing/hashing.service';
 import { IActiveUserData } from '../interfaces/active-user-data.interface';
 import { IUser } from '../interfaces/user.interface';
-import { MongoErrorCodes } from '../enums/mongo-error-codes.enum';
-import jwtConfig from '../config/jwt.config';
-import { HashingService } from '../hashing/hashing.service';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
-import { User, UserDocument } from './schemas/user.schema';
 import { UserAuthDto } from './dto/user-auth.dto';
+import { User, UserDocument } from './schemas/user.schema';
 
 @Injectable()
 export class AuthenticationService {
@@ -31,6 +29,26 @@ export class AuthenticationService {
     private readonly jwtService: JwtService,
   ) {}
 
+  private readonly logger = new Logger(AuthenticationService.name);
+  private readonly metadataClient = axios.create({
+    baseURL: process.env.USER_METADATA_URL, // e.g., https://user-metadata.ngx-workshop.io
+    timeout: 1500,
+  });
+
+  private async ensureUserMetadata(userId: string) {
+    try {
+      // Only `uuid` is required; others are optional
+      await this.metadataClient.put(`/user-metadata/${userId}`, {
+        uuid: userId,
+      });
+    } catch (err) {
+      this.logger.warn(
+        `Failed to upsert UserMetadata for ${userId}: ${String(err)}`,
+      );
+      // Non-blocking: swallow error so user creation still succeeds
+    }
+  }
+
   async signUp(
     userAuthDto: UserAuthDto,
   ): Promise<{ accessToken: string; refreshToken: string }> {
@@ -39,8 +57,12 @@ export class AuthenticationService {
       user.email = userAuthDto.email;
       user.password = await this.hashService.hash(userAuthDto.password);
 
-      await this.userModel.create(user);
-      return await this.generateTokens(user);
+      const created = await this.userModel.create(user);
+
+      // kick off idempotent metadata upsert (non-blocking failure)
+      await this.ensureUserMetadata(created._id.toString());
+
+      return await this.generateTokens(created);
     } catch (error) {
       if (error.code === MongoErrorCodes.DuplicateKey) {
         throw new ConflictException('Email already exists');
