@@ -55,7 +55,9 @@ export class AuthenticationService {
       );
     } catch (err) {
       this.logger.warn(
-        `Failed to upsert UserMetadata for ${userId}: ${String(err)} : PROP ${this.metadataClient.defaults.baseURL} : VAR ${process.env.USER_METADATA_URL}`,
+        `Failed to upsert UserMetadata for ${userId}: ${String(err)}
+        : PROP ${this.metadataClient.defaults.baseURL}
+        : VAR ${process.env.USER_METADATA_URL}`,
       );
       // Non-blocking on purpose
     }
