@@ -31,7 +31,7 @@ export class AuthenticationService {
 
   private readonly logger = new Logger(AuthenticationService.name);
   private readonly metadataClient = axios.create({
-    baseURL: process.env.USER_METADATA_URL, // e.g., https://user-metadata.ngx-workshop.io
+    baseURL: process.env.USER_METADATA_URL, // Used VPC
     timeout: 1500,
   });
 
