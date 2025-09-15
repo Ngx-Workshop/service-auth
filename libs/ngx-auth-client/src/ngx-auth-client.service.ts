@@ -1,17 +1,23 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
-import { firstValueFrom } from 'rxjs';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
+import { firstValueFrom } from 'rxjs';
 
 @Injectable()
 export class AuthClientService {
   constructor(private httpService: HttpService) {}
 
-  private readonly baseUrl = process.env.AUTH_BASE_URL ?? 'https://auth.ngx-workshop.io';
+  private readonly baseUrl =
+    process.env.AUTH_BASE_URL ?? 'https://auth.ngx-workshop.io';
   async validateAccessToken(request: Request): Promise<boolean> {
-
     // Grab token from cookies or headers as your guard does
-    const accessToken = request.cookies?.accessToken || request.headers['authorization']?.replace('Bearer ', '');
+    const rawAuth = Array.isArray(request.headers['authorization'])
+      ? request.headers['authorization'][0]
+      : request.headers['authorization'];
+    const headerToken = rawAuth?.toString().startsWith('Bearer ')
+      ? rawAuth.toString().slice(7).trim()
+      : undefined;
+    const accessToken = request.cookies?.accessToken || headerToken;
     if (!accessToken) {
       throw new UnauthorizedException('No access token found');
     }
@@ -21,9 +27,10 @@ export class AuthClientService {
         this.httpService.get(`${this.baseUrl}/validate-access-token`, {
           headers: {
             Cookie: `accessToken=${accessToken}`,
+            Authorization: `Bearer ${accessToken}`,
           },
           // You could also send as Bearer if your auth service supports it
-        })
+        }),
       );
       return res.data === true;
     } catch (err) {

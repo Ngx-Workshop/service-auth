@@ -37,15 +37,27 @@ export class AuthenticationService {
 
   private async ensureUserMetadata(userId: string) {
     try {
-      // Only `uuid` is required; others are optional
-      await this.metadataClient.put(`/user-metadata/${userId}`, {
-        uuid: userId,
-      });
+      // Short-lived service token (e.g., 60s) using the same JWT config
+      const token = await this.jwtService.signAsync(
+        { sub: userId, role: 'system' }, // include any claims your guard expects
+        {
+          audience: this.jwtConfiguration.audience,
+          issuer: this.jwtConfiguration.issuer,
+          secret: this.jwtConfiguration.secret,
+          expiresIn: 60, // seconds
+        },
+      );
+
+      await this.metadataClient.put(
+        `/user-metadata/${userId}`,
+        { uuid: userId },
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
     } catch (err) {
       this.logger.warn(
         `Failed to upsert UserMetadata for ${userId}: ${String(err)}`,
       );
-      // Non-blocking: swallow error so user creation still succeeds
+      // Non-blocking on purpose
     }
   }
 
@@ -59,10 +71,13 @@ export class AuthenticationService {
 
       const created = await this.userModel.create(user);
 
-      // kick off idempotent metadata upsert (non-blocking failure)
+      // generate tokens first so we can authenticate metadata service (if required)
+      const tokens = await this.generateTokens(created);
+
+      // kick off idempotent metadata upsert (non-blocking failure). Pass access token for auth if needed
       await this.ensureUserMetadata(created._id.toString());
 
-      return await this.generateTokens(created);
+      return tokens;
     } catch (error) {
       if (error.code === MongoErrorCodes.DuplicateKey) {
         throw new ConflictException('Email already exists');
