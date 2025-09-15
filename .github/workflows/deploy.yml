@@ -19,8 +19,8 @@ jobs:
           host: ${{ secrets.DROPLET_IP }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: "."
-          target: "/opt/ngx-nestjs-services/ngx-auth-service"
+          source: '.'
+          target: '/opt/ngx-nestjs-services/ngx-auth-service'
 
       - name: SSH and Deploy
         uses: appleboy/ssh-action@master
@@ -42,6 +42,7 @@ jobs:
             echo "JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}" >> .env
             echo "JWT_ACCESS_TOKEN_TTL=${{ secrets.JWT_ACCESS_TOKEN_TTL }}" >> .env
             echo "JWT_REFRESH_TOKEN_TTL=${{ secrets.JWT_REFRESH_TOKEN_TTL }}" >> .env
+            echo "USER_METADATA_URL=${{ secrets.USER_METADATA_URL }}" >> .env
             echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
             echo "DOMAIN=${{ secrets.DOMAIN }}" >> .env
 
