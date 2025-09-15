@@ -32,7 +32,7 @@ export class AuthenticationService {
   private readonly logger = new Logger(AuthenticationService.name);
   private readonly metadataClient = axios.create({
     baseURL: process.env.USER_METADATA_URL, // Used VPC
-    timeout: 1500,
+    timeout: 5000,
   });
 
   private async ensureUserMetadata(userId: string) {
