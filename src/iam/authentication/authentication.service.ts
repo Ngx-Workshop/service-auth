@@ -49,7 +49,7 @@ export class AuthenticationService {
       );
 
       await this.metadataClient.put(
-        `/user-metadata/`,
+        `/user-metadata`,
         { uuid: userId },
         { headers: { Authorization: `Bearer ${token}` } },
       );
