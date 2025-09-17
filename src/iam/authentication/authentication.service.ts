@@ -39,7 +39,7 @@ export class AuthenticationService {
     try {
       // Short-lived service token (e.g., 60s) using the same JWT config
       const token = await this.jwtService.signAsync(
-        { sub: userId, role: 'system' }, // include any claims your guard expects
+        { sub: userId, role: 'regular' }, // include any claims your guard expects
         {
           audience: this.jwtConfiguration.audience,
           issuer: this.jwtConfiguration.issuer,
