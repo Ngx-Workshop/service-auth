@@ -2,6 +2,25 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
+import { RequestKeys } from './enums/request-keys.enum';
+import { IActiveUserData } from './interfaces/active-user-data.interface';
+
+function decodeJwtPayload(token: string): Partial<IActiveUserData> | undefined {
+  try {
+    const [, payloadB64] = token.split('.');
+    if (!payloadB64) return undefined;
+    const json = Buffer.from(payloadB64, 'base64url').toString('utf8');
+    const payload = JSON.parse(json);
+    // Normalize to the shape our decorators expect
+    return {
+      sub: payload.sub,
+      email: payload.email,
+      role: payload.role,
+    } as Partial<IActiveUserData>;
+  } catch {
+    return undefined;
+  }
+}
 
 @Injectable()
 export class AuthClientService {
@@ -32,7 +51,15 @@ export class AuthClientService {
           // You could also send as Bearer if your auth service supports it
         }),
       );
-      return res.data === true;
+      // return res.data === true;
+      if (res.data === true) {
+        const payload = decodeJwtPayload(accessToken);
+        if (payload) {
+          (request as any)[RequestKeys.REQUEST_USER_KEY] = payload;
+        }
+        return true;
+      }
+      throw new UnauthorizedException('Invalid access token');
     } catch (err) {
       throw new UnauthorizedException('Invalid access token');
     }
