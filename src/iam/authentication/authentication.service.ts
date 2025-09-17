@@ -54,12 +54,10 @@ export class AuthenticationService {
         { headers: { Authorization: `Bearer ${token}` } },
       );
     } catch (err) {
-      this.logger.warn(
-        `Failed to upsert UserMetadata for ${userId}: ${String(err)}
-        : PROP ${this.metadataClient.defaults.baseURL}
-        : VAR ${process.env.USER_METADATA_URL}`,
-      );
       // Non-blocking on purpose
+      this.logger.warn(
+        `Failed to upsert UserMetadata for ${userId}: ${String(err)}`,
+      );
     }
   }
 
