@@ -16,6 +16,7 @@ import { HashingService } from '../hashing/hashing.service';
 import { IActiveUserData } from '../interfaces/active-user-data.interface';
 import { IUser } from '../interfaces/user.interface';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { RoleDto } from './dto/role.dto';
 import { UserAuthDto } from './dto/user-auth.dto';
 import { User, UserDocument } from './schemas/user.schema';
 
@@ -141,5 +142,15 @@ export class AuthenticationService {
         expiresIn,
       },
     );
+  }
+
+  updateUserRole({ id, role }: RoleDto) {
+    return this.userModel
+      .findByIdAndUpdate(
+        new Types.ObjectId(id),
+        { role },
+        { new: true, runValidators: true },
+      )
+      .exec();
   }
 }

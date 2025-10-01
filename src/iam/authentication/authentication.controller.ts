@@ -5,22 +5,19 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  Put,
   Res,
 } from '@nestjs/common';
 import { Response } from 'express';
-import { AuthenticationService } from './authentication.service';
-// TODO: REPLACE THIS WITH THE SHARED NPM PACKAGE
-// import { Auth } from '../../../decorators/auth.decorator';
-// import { AuthType } from '../../../enums/auth-type.enum';
-// import { UserAuthDto } from './dto/user-auth.dto';
-// import { ActiveUser } from '../../../decorators/active-user.decorator';
-// import { IActiveUserData } from '../../../interfaces/active-user-data.interface';
-import { Auth } from '../decorators/auth.decorator';
-import { AuthType } from '../enums/auth-type.enum';
-import { UserAuthDto } from './dto/user-auth.dto';
 import { ActiveUser } from '../decorators/active-user.decorator';
+import { Auth } from '../decorators/auth.decorator';
+import { Roles } from '../decorators/role.decorator';
+import { AuthType } from '../enums/auth-type.enum';
+import { Role } from '../enums/role.enum';
 import { IActiveUserData } from '../interfaces/active-user-data.interface';
-
+import { AuthenticationService } from './authentication.service';
+import { RoleDto } from './dto/role.dto';
+import { UserAuthDto } from './dto/user-auth.dto';
 
 const cookieOptions = {
   domain: process.env.DOMAIN || 'localhost',
@@ -71,11 +68,19 @@ export class AuthenticationController {
   @Auth(AuthType.Bearer)
   @HttpCode(HttpStatus.OK)
   @Get('user-metadata')
-  async getUserMetadata(@ActiveUser() user: IActiveUserData ) {
+  async getUserMetadata(@ActiveUser() user: IActiveUserData) {
     return {
       email: user.email,
-      role: user.role
+      role: user.role,
     };
+  }
+
+  @Auth(AuthType.Bearer)
+  @Roles(Role.Admin)
+  @HttpCode(HttpStatus.OK)
+  @Put('role')
+  async updateUserRole(@Body() role: RoleDto) {
+    return this.authService.updateUserRole(role);
   }
 
   // Let's think about the need of refresh-tokens
