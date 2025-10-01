@@ -1,12 +1,12 @@
+import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 import { AuthClientService } from './ngx-auth-client.service';
-import { HttpModule } from '@nestjs/axios';
 import { RemoteAuthGuard } from './ngx-remote-auth.guard';
+import { RolesGuard } from './roles.guard';
 
 @Module({
   imports: [HttpModule],
-  providers: [AuthClientService, RemoteAuthGuard],
-  exports: [AuthClientService, RemoteAuthGuard],
+  providers: [AuthClientService, RemoteAuthGuard, RolesGuard],
+  exports: [AuthClientService, RemoteAuthGuard, RolesGuard],
 })
 export class NgxAuthClientModule {}
-
