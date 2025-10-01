@@ -1,6 +1,6 @@
 {
   "name": "@tmdjr/ngx-auth-client",
-  "version": "0.0.16",
+  "version": "0.0.17",
   "description": "NestJS Auth Client for remote access token validation",
   "main": "index.js",
   "types": "index.d.ts",
