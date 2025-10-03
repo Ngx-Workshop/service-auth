@@ -11,9 +11,7 @@ import {
 import { Response } from 'express';
 import { ActiveUser } from '../decorators/active-user.decorator';
 import { Auth } from '../decorators/auth.decorator';
-import { Roles } from '../decorators/role.decorator';
 import { AuthType } from '../enums/auth-type.enum';
-import { Role } from '../enums/role.enum';
 import { IActiveUserData } from '../interfaces/active-user-data.interface';
 import { AuthenticationService } from './authentication.service';
 import { RoleDto } from './dto/role.dto';
@@ -76,7 +74,6 @@ export class AuthenticationController {
   }
 
   @Auth(AuthType.Bearer)
-  @Roles(Role.Admin)
   @HttpCode(HttpStatus.OK)
   @Put('role')
   async updateUserRole(@Body() role: RoleDto) {
