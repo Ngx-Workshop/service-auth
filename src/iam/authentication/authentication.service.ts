@@ -15,7 +15,6 @@ import { MongoErrorCodes } from '../enums/mongo-error-codes.enum';
 import { HashingService } from '../hashing/hashing.service';
 import { IActiveUserData } from '../interfaces/active-user-data.interface';
 import { IUser } from '../interfaces/user.interface';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RoleDto } from './dto/role.dto';
 import { UserAuthDto } from './dto/user-auth.dto';
 import { User, UserDocument } from './schemas/user.schema';
@@ -101,33 +100,36 @@ export class AuthenticationService {
     return await this.generateTokens(user);
   }
 
-  async refreshTokens(refreshTokenDto: RefreshTokenDto) {
-    try {
-      const { sub } = await this.jwtService.verifyAsync<
-        Pick<IActiveUserData, 'sub'>
-      >(refreshTokenDto.refreshToken, {
-        secret: this.jwtConfiguration.secret,
-        audience: this.jwtConfiguration.audience,
-        issuer: this.jwtConfiguration.issuer,
-      });
+  // async refreshTokens(refreshTokenDto: RefreshTokenDto) {
+  //   try {
+  //     const { sub } = await this.jwtService.verifyAsync<
+  //       Pick<IActiveUserData, 'sub'>
+  //     >(refreshTokenDto.refreshToken, {
+  //       secret: this.jwtConfiguration.secret,
+  //       audience: this.jwtConfiguration.audience,
+  //       issuer: this.jwtConfiguration.issuer,
+  //     });
 
-      const user = await this.userModel
-        .findById(new Types.ObjectId(sub))
-        .exec();
-      return await this.generateTokens(user as IUser);
-    } catch {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
-  }
+  //     const user = await this.userModel
+  //       .findById(new Types.ObjectId(sub))
+  //       .exec();
+  //     return await this.generateTokens(user as IUser);
+  //   } catch {
+  //     throw new UnauthorizedException('Invalid refresh token');
+  //   }
+  // }
 
-  private async generateTokens(user: IUser) {
+  private async generateTokens(user: UserDocument) {
     const [accessToken, refreshToken] = await Promise.all([
       this.signToken<Partial<IActiveUserData>>(
-        user._id,
+        user._id.toString(),
         this.jwtConfiguration.accessTokenTtl,
         { email: user.email, role: user.role },
       ),
-      this.signToken(user._id, this.jwtConfiguration.refreshTokenTtl),
+      this.signToken(
+        user._id.toString(),
+        this.jwtConfiguration.refreshTokenTtl,
+      ),
     ]);
 
     return { accessToken, refreshToken };
