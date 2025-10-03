@@ -26,12 +26,12 @@ const cookieOptions = {
   sameSite: true,
 };
 
-@Auth(AuthType.None)
 @Controller()
 export class AuthenticationController {
   constructor(private readonly authService: AuthenticationService) {}
 
   @Post('sign-up')
+  @Auth(AuthType.None)
   async signUp(
     @Res({ passthrough: true }) response: Response,
     @Body() userAuthDto: UserAuthDto,
@@ -41,8 +41,9 @@ export class AuthenticationController {
     response.cookie('accessToken', jwt.accessToken, cookieOptions);
   }
 
-  @HttpCode(HttpStatus.OK)
   @Post('sign-in')
+  @Auth(AuthType.None)
+  @HttpCode(HttpStatus.OK)
   async signIn(
     @Res({ passthrough: true }) response: Response,
     @Body() userAuthDto: UserAuthDto,
@@ -51,23 +52,24 @@ export class AuthenticationController {
     response.cookie('accessToken', jwt.accessToken, cookieOptions);
   }
 
-  @HttpCode(HttpStatus.OK)
   @Get('sign-out')
+  @Auth(AuthType.None)
+  @HttpCode(HttpStatus.OK)
   async signOut(@Res({ passthrough: true }) response: Response) {
     response.clearCookie('accessToken');
     response.end();
   }
 
-  @Auth(AuthType.Bearer)
-  @HttpCode(HttpStatus.OK)
   @Get('validate-access-token')
+  @Roles(Role.Admin, Role.Regular, Role.Publisher)
+  @HttpCode(HttpStatus.OK)
   isLoggedIn(): boolean {
     return true;
   }
 
-  @Auth(AuthType.Bearer)
-  @HttpCode(HttpStatus.OK)
   @Get('user-metadata')
+  @Roles(Role.Admin, Role.Regular, Role.Publisher)
+  @HttpCode(HttpStatus.OK)
   async getUserMetadata(@ActiveUser() user: IActiveUserData) {
     return {
       email: user.email,
@@ -75,10 +77,9 @@ export class AuthenticationController {
     };
   }
 
-  @Auth(AuthType.Bearer)
+  @Put('role')
   @Roles(Role.Admin)
   @HttpCode(HttpStatus.OK)
-  @Put('role')
   async updateUserRole(@Body() role: RoleDto) {
     return this.authService.updateUserRole(role);
   }
