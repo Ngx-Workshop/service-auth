@@ -73,7 +73,6 @@ export class AuthenticationController {
     };
   }
 
-  @Auth(AuthType.Bearer)
   @HttpCode(HttpStatus.OK)
   @Put('role')
   async updateUserRole(@Body() role: RoleDto) {
