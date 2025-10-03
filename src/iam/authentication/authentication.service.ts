@@ -15,6 +15,7 @@ import { MongoErrorCodes } from '../enums/mongo-error-codes.enum';
 import { HashingService } from '../hashing/hashing.service';
 import { IActiveUserData } from '../interfaces/active-user-data.interface';
 import { IUser } from '../interfaces/user.interface';
+import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RoleDto } from './dto/role.dto';
 import { UserAuthDto } from './dto/user-auth.dto';
 import { User, UserDocument } from './schemas/user.schema';
@@ -35,12 +36,11 @@ export class AuthenticationService {
     timeout: 3000,
   });
 
-  private async ensureUserMetadata({ _id, email }: IUser) {
-    const uuid = _id.toString();
+  private async ensureUserMetadata(userId: string) {
     try {
       // Short-lived service token (e.g., 60s) using the same JWT config
       const token = await this.jwtService.signAsync(
-        { sub: uuid, role: 'regular' }, // include any claims your guard expects
+        { sub: userId, role: 'regular' }, // include any claims your guard expects
         {
           audience: this.jwtConfiguration.audience,
           issuer: this.jwtConfiguration.issuer,
@@ -51,12 +51,12 @@ export class AuthenticationService {
 
       await this.metadataClient.put(
         `/user-metadata`,
-        { uuid, email },
+        { uuid: userId },
         { headers: { Authorization: `Bearer ${token}` } },
       );
     } catch (err) {
       // Non-blocking on purpose
-      this.logger.warn(`Failed to upsert UserMetadata for ${uuid}`, err);
+      this.logger.warn(`Failed to upsert UserMetadata for ${userId}`, err);
     }
   }
 
@@ -68,13 +68,13 @@ export class AuthenticationService {
       user.email = userAuthDto.email;
       user.password = await this.hashService.hash(userAuthDto.password);
 
-      const createdUser = await this.userModel.create(user);
+      const created = await this.userModel.create(user);
 
       // generate tokens first so we can authenticate metadata service (if required)
-      const tokens = await this.generateTokens(createdUser);
+      const tokens = await this.generateTokens(created);
 
       // kick off idempotent metadata upsert (non-blocking failure). Pass access token for auth if needed
-      await this.ensureUserMetadata(createdUser);
+      await this.ensureUserMetadata(created._id.toString());
 
       return tokens;
     } catch (error) {
@@ -100,36 +100,33 @@ export class AuthenticationService {
     return await this.generateTokens(user);
   }
 
-  // async refreshTokens(refreshTokenDto: RefreshTokenDto) {
-  //   try {
-  //     const { sub } = await this.jwtService.verifyAsync<
-  //       Pick<IActiveUserData, 'sub'>
-  //     >(refreshTokenDto.refreshToken, {
-  //       secret: this.jwtConfiguration.secret,
-  //       audience: this.jwtConfiguration.audience,
-  //       issuer: this.jwtConfiguration.issuer,
-  //     });
+  async refreshTokens(refreshTokenDto: RefreshTokenDto) {
+    try {
+      const { sub } = await this.jwtService.verifyAsync<
+        Pick<IActiveUserData, 'sub'>
+      >(refreshTokenDto.refreshToken, {
+        secret: this.jwtConfiguration.secret,
+        audience: this.jwtConfiguration.audience,
+        issuer: this.jwtConfiguration.issuer,
+      });
 
-  //     const user = await this.userModel
-  //       .findById(new Types.ObjectId(sub))
-  //       .exec();
-  //     return await this.generateTokens(user as IUser);
-  //   } catch {
-  //     throw new UnauthorizedException('Invalid refresh token');
-  //   }
-  // }
+      const user = await this.userModel
+        .findById(new Types.ObjectId(sub))
+        .exec();
+      return await this.generateTokens(user as IUser);
+    } catch {
+      throw new UnauthorizedException('Invalid refresh token');
+    }
+  }
 
-  private async generateTokens(user: UserDocument) {
+  private async generateTokens(user: IUser) {
     const [accessToken, refreshToken] = await Promise.all([
       this.signToken<Partial<IActiveUserData>>(
-        user._id.toString(),
+        user._id,
         this.jwtConfiguration.accessTokenTtl,
         { email: user.email, role: user.role },
       ),
-      this.signToken(
-        user._id.toString(),
-        this.jwtConfiguration.refreshTokenTtl,
-      ),
+      this.signToken(user._id, this.jwtConfiguration.refreshTokenTtl),
     ]);
 
     return { accessToken, refreshToken };
