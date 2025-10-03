@@ -36,47 +36,27 @@ export class AuthenticationService {
     timeout: 3000,
   });
 
-  private async ensureUserMetadata(userId: string) {
+  async ensureUserMetadata({ _id: uuid }: IUser, accessToken) {
     try {
-      // Short-lived service token (e.g., 60s) using the same JWT config
-      const token = await this.jwtService.signAsync(
-        { sub: userId, role: 'regular' }, // include any claims your guard expects
-        {
-          audience: this.jwtConfiguration.audience,
-          issuer: this.jwtConfiguration.issuer,
-          secret: this.jwtConfiguration.secret,
-          expiresIn: 60, // seconds
-        },
-      );
-
       await this.metadataClient.put(
         `/user-metadata`,
-        { uuid: userId },
-        { headers: { Authorization: `Bearer ${token}` } },
+        { uuid },
+        { headers: { Authorization: `Bearer ${accessToken}` } },
       );
     } catch (err) {
       // Non-blocking on purpose
-      this.logger.warn(`Failed to upsert UserMetadata for ${userId}`, err);
+      this.logger.warn(`Failed to upsert UserMetadata for ${uuid}`, err);
     }
   }
 
-  async signUp(
-    userAuthDto: UserAuthDto,
-  ): Promise<{ accessToken: string; refreshToken: string }> {
+  async signUp(userAuthDto: UserAuthDto): Promise<IUser> {
     try {
       const user = new User();
       user.email = userAuthDto.email;
       user.password = await this.hashService.hash(userAuthDto.password);
 
       const created = await this.userModel.create(user);
-
-      // generate tokens first so we can authenticate metadata service (if required)
-      const tokens = await this.generateTokens(created);
-
-      // kick off idempotent metadata upsert (non-blocking failure). Pass access token for auth if needed
-      await this.ensureUserMetadata(created._id.toString());
-
-      return tokens;
+      return created;
     } catch (error) {
       if (error.code === MongoErrorCodes.DuplicateKey) {
         throw new ConflictException('Email already exists');

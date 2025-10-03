@@ -1,66 +1,98 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
 import { RequestKeys } from './enums/request-keys.enum';
+import { Role } from './enums/role.enum';
 import { IActiveUserData } from './interfaces/active-user-data.interface';
 
 function decodeJwtPayload(token: string): Partial<IActiveUserData> | undefined {
   try {
     const [, payloadB64] = token.split('.');
     if (!payloadB64) return undefined;
-    const json = Buffer.from(payloadB64, 'base64url').toString('utf8');
+
+    // base64url -> base64 for broad Node compatibility
+    const base64 = payloadB64
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(payloadB64.length / 4) * 4, '=');
+    const json = Buffer.from(base64, 'base64').toString('utf8');
     const payload = JSON.parse(json);
-    // Normalize to the shape our decorators expect
+
     return {
       sub: payload.sub,
-      email: payload.email,
+      email:
+        payload.email ??
+        payload['email_address'] ??
+        payload['preferred_username'],
       role: payload.role,
-    } as Partial<IActiveUserData>;
+    };
   } catch {
     return undefined;
   }
 }
 
+function getAccessTokenFromRequest(request: Request): string | undefined {
+  const hdr = (
+    Array.isArray(request.headers.authorization)
+      ? request.headers.authorization[0]
+      : request.headers.authorization
+  ) as string | undefined;
+
+  const fromHeader = hdr?.startsWith('Bearer ')
+    ? hdr.slice(7).trim()
+    : undefined;
+  return request.cookies?.accessToken || fromHeader;
+}
+
 @Injectable()
 export class AuthClientService {
+  logger = new Logger(AuthClientService.name);
   constructor(private httpService: HttpService) {}
 
   private readonly baseUrl =
     process.env.AUTH_BASE_URL ?? 'https://auth.ngx-workshop.io';
+
   async validateAccessToken(request: Request): Promise<boolean> {
-    // Grab token from cookies or headers as your guard does
-    const rawAuth = Array.isArray(request.headers['authorization'])
-      ? request.headers['authorization'][0]
-      : request.headers['authorization'];
-    const headerToken = rawAuth?.toString().startsWith('Bearer ')
-      ? rawAuth.toString().slice(7).trim()
-      : undefined;
-    const accessToken = request.cookies?.accessToken || headerToken;
-    if (!accessToken) {
-      throw new UnauthorizedException('No access token found');
-    }
+    const accessToken = getAccessTokenFromRequest(request);
+    if (!accessToken) throw new UnauthorizedException('No access token found');
+
     try {
-      // Hit the auth service endpoint
       const res = await firstValueFrom(
         this.httpService.get(`${this.baseUrl}/validate-access-token`, {
           headers: {
             Cookie: `accessToken=${accessToken}`,
             Authorization: `Bearer ${accessToken}`,
           },
-          // You could also send as Bearer if your auth service supports it
         }),
       );
-      // return res.data === true;
-      if (res.data === true) {
-        const payload = decodeJwtPayload(accessToken);
-        if (payload) {
-          (request as any)[RequestKeys.REQUEST_USER_KEY] = payload;
-        }
-        return true;
-      }
-      throw new UnauthorizedException('Invalid access token');
-    } catch (err) {
+
+      if (res.data !== true)
+        throw new UnauthorizedException('Invalid access token');
+
+      this.logger.debug('This is the token: ' + accessToken);
+      // Decode locally to keep all claims, including email
+      const payload = decodeJwtPayload(accessToken);
+      if (!payload?.sub)
+        throw new UnauthorizedException('Invalid token payload');
+
+      const existing = (request as any)[RequestKeys.REQUEST_USER_KEY] as
+        | Partial<IActiveUserData>
+        | undefined;
+
+      const merged: IActiveUserData = {
+        sub: existing?.sub ?? payload.sub!,
+        email: existing?.email ?? payload.email ?? 'NOTHING_TO_SEE_HERE',
+        role: existing?.role ?? payload.role ?? Role.Regular,
+      };
+
+      (request as any)[RequestKeys.REQUEST_USER_KEY] = merged;
+
+      // Optionally also mirror onto req.user for other middleware
+      if (!(request as any).user) (request as any).user = merged;
+
+      return true;
+    } catch {
       throw new UnauthorizedException('Invalid access token');
     }
   }

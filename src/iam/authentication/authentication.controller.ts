@@ -36,8 +36,9 @@ export class AuthenticationController {
     @Res({ passthrough: true }) response: Response,
     @Body() userAuthDto: UserAuthDto,
   ) {
-    await this.authService.signUp(userAuthDto);
+    const created = await this.authService.signUp(userAuthDto);
     const jwt = await this.authService.signIn(userAuthDto);
+    await this.authService.ensureUserMetadata(created, jwt.accessToken);
     response.cookie('accessToken', jwt.accessToken, cookieOptions);
   }
 
