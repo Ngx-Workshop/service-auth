@@ -126,11 +126,7 @@ export class AuthenticationService {
 
   async updateUserRole({ id, role }: RoleDto) {
     const updatedRole = await this.userModel
-      .findByIdAndUpdate(
-        new Types.ObjectId(id),
-        { role },
-        { new: true, runValidators: true },
-      )
+      .findByIdAndUpdate(id, { role }, { new: true, runValidators: true })
       .exec();
     this.logger.log(
       `Updated user role: ${updatedRole?._id} -> ${updatedRole?.role}`,
