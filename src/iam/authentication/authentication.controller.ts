@@ -4,6 +4,7 @@ import {
   Get,
   HttpCode,
   HttpStatus,
+  Logger,
   Post,
   Put,
   Res,
@@ -28,6 +29,8 @@ const cookieOptions = {
 
 @Controller()
 export class AuthenticationController {
+  logger = new Logger(AuthenticationController.name);
+
   constructor(private readonly authService: AuthenticationService) {}
 
   @Post('sign-up')
@@ -82,6 +85,7 @@ export class AuthenticationController {
   @Roles(Role.Admin)
   @HttpCode(HttpStatus.OK)
   async updateUserRole(@Body() role: RoleDto) {
+    this.logger.log(`Updating user role: ${JSON.stringify(role)}`);
     return this.authService.updateUserRole(role);
   }
 
