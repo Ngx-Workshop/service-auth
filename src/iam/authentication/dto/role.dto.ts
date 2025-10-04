@@ -3,7 +3,7 @@ import { Role } from '../../enums/role.enum';
 
 export class RoleDto {
   @IsNotEmpty()
-  id: string;
+  userId: string;
 
   @IsEnum(Role)
   role: Role;
