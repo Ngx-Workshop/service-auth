@@ -1,5 +1,5 @@
 import { HttpService } from '@nestjs/axios';
-import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Request } from 'express';
 import { firstValueFrom } from 'rxjs';
 import { RequestKeys } from './enums/request-keys.enum';
@@ -47,7 +47,6 @@ function getAccessTokenFromRequest(request: Request): string | undefined {
 
 @Injectable()
 export class AuthClientService {
-  logger = new Logger(AuthClientService.name);
   constructor(private httpService: HttpService) {}
 
   private readonly baseUrl =
@@ -69,8 +68,6 @@ export class AuthClientService {
 
       if (res.data !== true)
         throw new UnauthorizedException('Invalid access token');
-
-      this.logger.debug('This is the token: ' + accessToken);
       // Decode locally to keep all claims, including email
       const payload = decodeJwtPayload(accessToken);
       if (!payload?.sub)
