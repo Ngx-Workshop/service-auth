@@ -1,3 +1,4 @@
+export * from './authentication.guard';
 export * from './decorators/active-user.decorator';
 export * from './decorators/auth.decorator';
 export * from './decorators/role.decorator';
