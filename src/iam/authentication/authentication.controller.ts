@@ -65,10 +65,10 @@ export class AuthenticationController {
   }
 
   @Get('validate-access-token')
-  @Roles(Role.Admin, Role.Regular, Role.Publisher)
+  @Auth(AuthType.Bearer, AuthType.None)
   @HttpCode(HttpStatus.OK)
-  isLoggedIn(): boolean {
-    return true;
+  isLoggedIn(@ActiveUser() user?: IActiveUserData): boolean {
+    return !!user;
   }
 
   @Get('user-metadata')
