@@ -14,5 +14,10 @@
   },
   "peerDependencies": {
     "@nestjs/core": "^11.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ngx-Workshop/service-auth.git",
+    "directory": "libs/ngx-auth-client"
   }
 }

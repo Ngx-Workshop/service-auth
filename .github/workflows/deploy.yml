@@ -4,56 +4,212 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: service-auth-production
+  cancel-in-progress: false
 
 jobs:
-  deploy:
+  publish:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
-      - name: Checkout Repo
-        uses: actions/checkout@v3
-
-      - name: Copy to Droplet
-        uses: appleboy/scp-action@master
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          persist-credentials: false
+
+      - name: Setup Node 22
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          check-latest: true
+          package-manager-cache: false
+
+      - name: Install publishing CLI
+        run: |
+          node - <<'NODE'
+          const [major, minor, patch] = process.versions.node.split('.').map(Number);
+          if (major !== 22 || minor < 22 || (minor === 22 && patch < 2)) {
+            throw new Error('npm 12.1.0 requires Node 22.22.2 or newer on Node 22');
+          }
+          NODE
+          npm install --global npm@12.1.0
+
+      - name: Install dependencies and build service
+        run: |
+          npm ci
+          npm run build
+
+      - name: Set deterministic client version
+        working-directory: libs/ngx-auth-client
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = './package.json';
+          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
+
+          if (pkg.name !== '@tmdjr/ngx-auth-client') {
+            throw new Error('Unexpected client package');
+          }
+
+          const [major, minor] = String(pkg.version).split('.');
+          const patch = process.env.GITHUB_RUN_NUMBER;
+          if (!/^\d+$/.test(patch || '')) {
+            throw new Error('Missing valid GitHub run number');
+          }
+
+          pkg.version = `${major}.${minor}.${patch}`;
+          fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
+          console.log('Publishing', pkg.name, pkg.version);
+          NODE
+
+      - name: Build auth client
+        run: npm run build:ngx-auth-client
+
+      - name: Publish auth client using OIDC
+        working-directory: dist/libs/ngx-auth-client
+        env:
+          NPM_CONFIG_REGISTRY: https://registry.npmjs.org
+        run: npm publish --access public
+
+  deploy:
+    needs: publish
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Prepare source and private runtime configuration
+        env:
+          PORT: ${{ secrets.PORT }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          MONGODB_URI: ${{ secrets.MONGODB_URI }}
+          JWT_ISSUER: ${{ secrets.JWT_ISSUER }}
+          JWT_AUDIENCE: ${{ secrets.JWT_AUDIENCE }}
+          JWT_ACCESS_TOKEN_TTL: ${{ secrets.JWT_ACCESS_TOKEN_TTL }}
+          JWT_REFRESH_TOKEN_TTL: ${{ secrets.JWT_REFRESH_TOKEN_TTL }}
+          USER_METADATA_URL: ${{ secrets.USER_METADATA_URL }}
+          NODE_ENV: ${{ secrets.NODE_ENV }}
+          DOMAIN: ${{ secrets.DOMAIN }}
+          SSH_HOST_FINGERPRINT: ${{ secrets.SSH_HOST_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          umask 077
+
+          python3 - <<'PY'
+          import os
+          from pathlib import Path
+          from urllib.parse import urlsplit, parse_qs
+
+          names = ("PORT", "JWT_SECRET", "MONGODB_URI", "JWT_ISSUER", "JWT_AUDIENCE", "JWT_ACCESS_TOKEN_TTL", "JWT_REFRESH_TOKEN_TTL", "USER_METADATA_URL", "NODE_ENV", "DOMAIN")
+          for name in (*names, "SSH_HOST_FINGERPRINT"):
+              value = os.environ.get(name, "")
+              if not value or any(c in value for c in ("\r", "\n", "\0")):
+                  raise SystemExit(f"Missing or invalid {name}")
+
+          if os.environ["PORT"] != "3000":
+              raise SystemExit("PORT must be 3000 for this deployment")
+
+          try:
+              uri = urlsplit(os.environ["MONGODB_URI"])
+              valid = (
+                  uri.scheme == "mongodb"
+                  and uri.hostname == "10.116.0.2"
+                  and uri.port == 27017
+                  and uri.username == "workshop"
+                  and bool(uri.password)
+                  and uri.path == "/workshop-viewer"
+                  and parse_qs(uri.query).get("authSource") == ["workshop-viewer"]
+              )
+          except ValueError:
+              valid = False
+
+          if not valid:
+              raise SystemExit("MONGODB_URI does not match the restored private database")
+
+          path = Path(".env.next")
+          path.write_text(
+              "".join(f"{name}={os.environ[name]}\n" for name in names)
+          )
+          path.chmod(0o600)
+          PY
+
+          git archive --format=tar --output=deploy-source.tar HEAD
+
+      - name: Copy source and runtime configuration
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
+        with:
+          version: '1.8.0'
           host: ${{ secrets.DROPLET_IP }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
-          source: '.'
+          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
+          source: 'deploy-source.tar,.env.next'
           target: '/opt/ngx-nestjs-services/ngx-auth-service'
+          overwrite: true
 
-      - name: SSH and Deploy
-        uses: appleboy/ssh-action@master
+      - name: Build and recreate service
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
         with:
+          version: '1.8.2'
           host: ${{ secrets.DROPLET_IP }}
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
+          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
+          command_timeout: 20m
           script: |
+            set -eu
+            umask 077
             cd /opt/ngx-nestjs-services/ngx-auth-service
+            trap 'rm -f .env.next deploy-source.tar' EXIT
 
-            echo "🌐 Ensuring shared Docker network exists..."
-            docker network ls | grep -q "ngx-net" || docker network create ngx-net
+            chmod 600 .env.next
+            tar -xf deploy-source.tar
+            rm -f deploy-source.tar
+            test -f .dockerignore
 
-            echo "🔑 Writing .env from GitHub secrets..."
-            echo "PORT=${{ secrets.PORT }}" > .env
-            echo "JWT_SECRET=${{ secrets.JWT_SECRET }}" >> .env
-            echo "MONGODB_URI=${{ secrets.MONGODB_URI }}" >> .env
-            echo "JWT_ISSUER=${{ secrets.JWT_ISSUER }}" >> .env
-            echo "JWT_AUDIENCE=${{ secrets.JWT_AUDIENCE }}" >> .env
-            echo "JWT_ACCESS_TOKEN_TTL=${{ secrets.JWT_ACCESS_TOKEN_TTL }}" >> .env
-            echo "JWT_REFRESH_TOKEN_TTL=${{ secrets.JWT_REFRESH_TOKEN_TTL }}" >> .env
-            echo "USER_METADATA_URL=${{ secrets.USER_METADATA_URL }}" >> .env
-            echo "NODE_ENV=${{ secrets.NODE_ENV }}" >> .env
-            echo "DOMAIN=${{ secrets.DOMAIN }}" >> .env
+            docker network inspect ngx-net >/dev/null 2>&1 || {
+              docker network create ngx-net ||
+                docker network inspect ngx-net >/dev/null
+            }
 
-            echo "🔗 Connecting peer services to ngx-net (ignore errors if not present)..."
-            docker network connect ngx-net ngx-mfe-orchestrator 2>/dev/null || true
             docker network connect ngx-net ngx-workshop-bff 2>/dev/null || true
+            docker network connect ngx-net ngx-mfe-orchestrator 2>/dev/null || true
 
-            echo "🚀 Building and starting container..."
             docker build -t ngx-auth-service .
-            docker stop ngx-auth-service || true
-            docker rm ngx-auth-service || true
+
+            if docker container inspect ngx-auth-service >/dev/null 2>&1; then
+              previous_image=$(docker inspect --format '{{.Image}}' ngx-auth-service)
+              docker image tag "$previous_image" ngx-auth-service:previous
+            fi
+            if [ -f .env ]; then
+              install -m 600 .env .env.previous
+            fi
+            install -m 600 .env.next .env
+            rm -f .env.next
+
+            if docker container inspect ngx-auth-service >/dev/null 2>&1; then
+              docker stop ngx-auth-service
+              docker rm ngx-auth-service
+            fi
+
             docker run -d \
               --name ngx-auth-service \
               --env-file .env \
@@ -61,3 +217,27 @@ jobs:
               --restart unless-stopped \
               -p 3000:3000 \
               ngx-auth-service
+
+            attempt=0
+            until docker exec ngx-auth-service node -e '
+              const net = require("node:net");
+              const socket = net.connect(3000, "127.0.0.1");
+              socket.setTimeout(2000);
+              socket.on("connect", () => {
+                socket.end();
+                process.exit(0);
+              });
+              socket.on("error", () => process.exit(1));
+              socket.on("timeout", () => process.exit(1));
+            ' >/dev/null 2>&1; do
+              attempt=$((attempt + 1))
+              if [ "$attempt" -ge 30 ]; then
+                echo "Service failed its startup check" >&2
+                exit 1
+              fi
+              sleep 2
+            done
+
+      - name: Remove temporary deployment files
+        if: always()
+        run: rm -f .env.next deploy-source.tar
