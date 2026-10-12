@@ -5,6 +5,21 @@ services are deployed. Private ChatGPT plugin creation and hosted OAuth discover
 is completing account sign-in/consent in the browser. Account linking and
 ChatGPT tool use remain unverified until that finishes.
 
+## Browser form correction
+
+The owner reported `Invalid form origin` while submitting the real Chrome login
+form. The interaction and grant pages sent `Referrer-Policy: no-referrer`, which
+causes native HTML POST navigations to send `Origin: null` under the
+[Fetch origin-header algorithm](https://fetch.spec.whatwg.org/#append-a-request-origin-header).
+The HTTP acceptance runner explicitly supplied Origin and therefore missed this
+browser behavior. Both pages now use `same-origin`: same-origin form submissions
+retain the issuer origin, while cross-origin callbacks receive no Referer.
+Exact issuer Origin validation, single-use CSRF tokens, cookies, CSP and grant
+ownership checks remain enforced. Regression coverage checks the rendered policy
+for login, consent and grant management and rejects literal null origins.
+Deployment and native Chrome verification of this correction are recorded below
+when completed; owner linking remains pending.
+
 ## Public identities and client
 
 - MCP resource: https://mcp.ngx-workshop.io/mcp.

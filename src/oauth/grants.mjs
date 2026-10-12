@@ -15,7 +15,7 @@ export function grantHandler(provider, db, auth, config) {
       'Content-Security-Policy',
       "default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
     );
-    res.setHeader('Referrer-Policy', 'no-referrer');
+    res.setHeader('Referrer-Policy', 'same-origin');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     const session = await provider.Session.get({
       req,

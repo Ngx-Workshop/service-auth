@@ -173,6 +173,7 @@ async function authorize(options = {}) {
     if (!res.headers.get('content-type')?.includes('text/html'))
       return { status: res.status, error: (await res.json()).error, verifier };
     const html = await res.text();
+    assert.equal(res.headers.get('referrer-policy'), 'same-origin');
     assert.match(
       res.headers.get('content-security-policy'),
       /frame-ancestors 'none'/,
@@ -367,6 +368,7 @@ test('login forms reject cross-origin POST, missing CSRF and wrong password', as
           body: new URLSearchParams(body),
         });
       assert.equal((await post(form, 'https://attacker.example')).status, 403);
+      assert.equal((await post(form, 'null')).status, 403);
       assert.equal(
         (await post({ ...form, csrf: '' }, config.issuer)).status,
         403,
@@ -554,6 +556,7 @@ test('authenticated grant management revokes access and rejects forged or cross-
     headers: { cookie: cookieHeader() },
   });
   assert.equal(page.status, 200);
+  assert.equal(page.headers.get('referrer-policy'), 'same-origin');
   const html = await page.text();
   assert.match(html, /Workshop client/);
   const csrf = html.match(/name="csrf" value="([^"]+)"/)[1],
@@ -573,6 +576,7 @@ test('authenticated grant management revokes access and rejects forged or cross-
     403,
   );
   assert.equal((await post({ csrf, grant: 'other-grant' })).status, 403);
+  assert.equal((await post({ csrf, grant }, 'null')).status, 403);
   assert.equal((await post({ csrf, grant })).status, 303);
   assert.equal((await introspect(token)).data.active, false);
   assert.equal((await post({ csrf, grant })).status, 403);
