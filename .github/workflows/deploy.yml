@@ -38,6 +38,7 @@ jobs:
       - name: Install and validate auth and additive client
         run: |
           npm ci
+          npm audit --omit=dev --audit-level=high
           npm run test:oauth
           npm run lint:oauth
           npx eslint libs/ngx-auth-client/src/oauth-introspection.ts src/app.module.ts

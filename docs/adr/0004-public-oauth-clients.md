@@ -69,3 +69,7 @@ zero-downtime deployment is required. Preserve data and keys and prove recovery.
 Initial ChatGPT registration is a recommendation awaiting exact client callback
 acceptance; see [client/recovery note](../launch-client-and-recovery.md).
 Nothing was provisioned, deployed or published.
+
+## Authorized launch evidence — 2026-10-12
+
+Decision implemented in production after explicit user authorization. See [launch evidence](../production-execution-2026-10-12.md) for reviewed commits/images, persistent secrets, verified TLS/scoped storage, actual recovery/public acceptance and the unresolved private ChatGPT builder error. Earlier no-deploy statements describe the historical phase.

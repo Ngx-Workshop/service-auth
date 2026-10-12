@@ -9,8 +9,6 @@ services:
       - /tmp:size=16m,noexec,nosuid
     cap_drop: [ALL]
     security_opt: [no-new-privileges:true]
-    ports:
-      - "${APP_PRIVATE_IP:?Set approved private application address}:3000:3000"
     env_file: [.env]
     environment:
       NODE_ENV: production

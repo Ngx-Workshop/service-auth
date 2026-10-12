@@ -1,5 +1,10 @@
 # Production-readiness implementation
 
+> Current status: services deployed and packages published after user authorization.
+> See [launch evidence](production-execution-2026-10-12.md). Earlier deferred/preflight
+> statements below describe the historical phase; private ChatGPT linking is still open.
+
+
 Implemented locally on 2026-10-12. Deployment and publication are deferred.
 
 ## Proxy contract

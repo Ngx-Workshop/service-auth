@@ -123,3 +123,12 @@ validation-only CI are implemented. See the [readiness runbook](docs/production-
 and [deployment handoff](specs/004-deployment/handoff.md). Public infrastructure,
 client registrations, recovery proof and rollout remain deferred. Nothing was
 deployed or published.
+
+## Production launch — 2026-10-12
+
+Services are deployed and packages published after explicit authorization. Public
+OAuth, three real catalog tools, revocation and isolated recovery passed. Private
+ChatGPT linking remains open because its builder rejects settings before login.
+See [launch evidence and operations](docs/production-execution-2026-10-12.md) for
+exact versions, verified boundaries, recovery paths and remaining action. Earlier
+phase-specific deferred statements are historical.

@@ -81,3 +81,7 @@ certificate, authenticated single-member rs0 and historical backup integrity.
 Installed production configuration does not yet satisfy this decision; deployment
 is blocked by the recorded infrastructure/client/secret/recovery/CI gaps. No
 production change or publication occurred.
+
+## Authorized launch evidence — 2026-10-12
+
+Decision implemented in production after explicit user authorization. See [launch evidence](../production-execution-2026-10-12.md) for reviewed commits/images, persistent secrets, verified TLS/scoped storage, actual recovery/public acceptance and the unresolved private ChatGPT builder error. Earlier no-deploy statements describe the historical phase.

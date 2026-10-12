@@ -1,5 +1,5 @@
 # Auth deployment tasks
-Status: Readiness implemented; release tasks remain · 2026-10-12
+Status: Deployed/published; private ChatGPT linking open · 2026-10-12
 
 - [x] P001: Inspect CI/Docker/config/session/storage/legacy browser source and infrastructure records; document findings/limits without secret values.
 - [x] P002: Add coordinated spec/plan, proposed client/secrets/Mongo ADRs and handoff; check mapping/links and unchanged deployment assets.
@@ -53,9 +53,13 @@ and package release; private service rollout; edge/DNS; ChatGPT linking and publ
 three-tool/revocation/legacy acceptance. Compatibility-mode Mongo TLS preserves
 older consumers until their own TLS migration; auth requires verified TLS.
 
-- [ ] X001: Fresh encrypted shared backup, independent escrow and isolated restore proof.
-- [ ] X002: Mongo TLS certificates, staged compatible server mode and scoped auth/provision/backup principals.
-- [ ] X003: Persistent OAuth keys, exact ChatGPT client, encrypted private backhaul and private-only bindings.
-- [ ] X004: Validated versioned images; gated CI/publication and reviewed commits.
-- [ ] X005: Activate services/edge/DNS; public SDK tools, revocation, legacy and rollback acceptance.
+- [x] X001: Fresh encrypted shared backup, independent escrow and isolated restore proof.
+- [x] X002: Mongo TLS certificates, staged compatible server mode and scoped auth/provision/backup principals.
+- [x] X003: Persistent OAuth keys, exact ChatGPT client, encrypted private backhaul and private-only bindings.
+- [x] X004: Validated versioned images; gated CI/publication and reviewed commits.
+- [x] X005: Activate services/edge/DNS; public SDK tools, revocation, legacy and rollback acceptance.
 - [ ] X006: Link private ChatGPT connection and record remaining account-specific constraints.
+
+## Launch acceptance evidence
+
+X001–X005 completed; [immutable release, infrastructure, recovery and public acceptance evidence](../../docs/production-execution-2026-10-12.md). X006 remains open: ChatGPT rejects settings before OAuth login. Historical T-items above combine broader rotation/client journeys; do not imply those unexercised portions were completed. No production key regeneration or live DB restore occurred.

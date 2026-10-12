@@ -1,5 +1,10 @@
 # Deployment preflight — 2026-10-12
 
+> Current status: services deployed and packages published after user authorization.
+> See [launch evidence](production-execution-2026-10-12.md). Earlier deferred/preflight
+> statements below describe the historical phase; private ChatGPT linking is still open.
+
+
 **Decision: NOT READY for production OAuth/MCP rollout.**
 Live inspection performed approximately 19:57–20:04 UTC. This preflight is complete
 as an audit; failed/unknown release gates remain open. Deployment and publication
