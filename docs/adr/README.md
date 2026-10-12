@@ -14,3 +14,5 @@ Deployment decisions proposed for future implementation:
 
 [Deployment handoff](../../specs/004-deployment/handoff.md) records limits and
 unchecked implementation/release tasks. No deployment is authorized by these ADRs.
+
+- [0007: Launch-supported OAuth metadata](0007-launched-oauth-metadata.md)
