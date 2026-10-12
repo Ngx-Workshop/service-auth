@@ -17,8 +17,17 @@ retain the issuer origin, while cross-origin callbacks receive no Referer.
 Exact issuer Origin validation, single-use CSRF tokens, cookies, CSP and grant
 ownership checks remain enforced. Regression coverage checks the rendered policy
 for login, consent and grant management and rejects literal null origins.
-Deployment and native Chrome verification of this correction are recorded below
-when completed; owner linking remains pending.
+PR5 merged as bc7cd383d1188c7585025a764820bea04a3db0a9 after CI38320347975
+passed all80 OAuth tests, lint, runtime audit and image checks. Its tree matches
+CI revision c9437f4c605af3ab6db4afc509cfca6a062f50be. The checksum-verified image
+was promoted with existing persistent secrets and no host ports; previous image
+retained. Public fresh login returns200 with the corrected same-origin policy,
+and gateway discovery remains200. After the owner dismissed the password-manager
+blocker, a native Chrome HTML login POST using a nonexistent deployment.invalid
+account reached authentication and rendered `Invalid email or password`, rather
+than `Invalid form origin`. No account was created or owner's password entered.
+The form returned with empty credentials and a fresh single-use CSRF token.
+Owner account linking and native consent remain pending.
 
 ## Public identities and client
 
@@ -39,14 +48,14 @@ The public signing JWKS contains no private fields.
 
 | Component | Reviewed merged source | Running CI image revision | Validation/publication |
 | --- | --- | --- | --- |
-| service-auth | f3ff49468699ca5151693adf073c39b95238cd9d | b013fb9f6cc5a96e31217237b7f4b13d86e81619 | CI 38315988019; publish 38312384697 |
+| service-auth | bc7cd383d1188c7585025a764820bea04a3db0a9 | c9437f4c605af3ab6db4afc509cfca6a062f50be | CI 38320347975; publish 38312384697 (client unchanged) |
 | service-mcp-gateway | ea230981f39f59973ff5b3d1cdf456035eb1cbff | 9e6630a2e6e059805f9e6580ac845f8b86a5a89a | CI 38315972629; publish 38312987246 |
 
 The CI pull-request merge revisions have the same Git trees as their reviewed
 merged source. Images were transferred as immutable archives, SHA256 checked,
 revision/architecture/non-root labels verified, then promoted explicitly.
-Image names: service-auth:b013fb9f6cc5 and service-mcp-gateway:9e6630a2e6e0.
-Image IDs: auth sha256:d34034caf4aa840b931b4468e6fc0d9f0426d2d80bea2de0a7fb2ddef0b9cdad;
+Image names: service-auth:c9437f4c605a and service-mcp-gateway:9e6630a2e6e0.
+Image IDs: auth sha256:5f754163acd7b0d38f196c8781e8abbce106ebaf606e2d940798d4c38c4331ce;
 gateway sha256:d3daa1eab4d4c7161e57feda161c2cb28369af6f6a554d07f4700290389da4fc.
 Edge/backhaul nginx uses pinned digest
 sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94.
