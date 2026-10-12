@@ -125,3 +125,16 @@ Public acceptance runner: test/production-oauth.integration.mjs in the gateway.
 It requires an explicitly provisioned private MCP_TEST_LOGIN_FILE; it never prints
 credentials or follows external callbacks. Local logs are private ephemeral
 operator evidence, not checked-in credentials.
+
+## Runtime dependency gate
+
+Final npm runtime audit found vulnerable dependency versions in auth. Compatible
+lockfile updates remove affected proxy-addr/Nest/HTTP/validation dependencies;
+bcrypt6 replaces the vulnerable node-pre-gyp/tar installer chain. A fixed hash
+produced by the old production bcrypt5 image validates under bcrypt6, including
+2a/2b prefixes and wrong-password rejection. Existing users/passwords stay intact.
+Gateway pins Swagger's js-yaml5.4.3 through a narrow override because its declared
+5.3.0 dependency has an advisory. CI now rejects high/critical production
+dependency advisories with npm audit --omit=dev --audit-level=high. Development
+toolchain advisories are separate remaining maintenance work, not removed by this
+runtime-only gate. Final security image promotion evidence follows below.
