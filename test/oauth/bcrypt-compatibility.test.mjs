@@ -10,8 +10,11 @@ const legacyHash =
 test('bcrypt6 accepts existing bcrypt5 account hashes without resetting passwords', async () => {
   assert.equal(await bcrypt.compare('LegacyCompatibility1!', legacyHash), true);
   assert.equal(
-    await bcrypt.compare('LegacyCompatibility1!', legacyHash.replace('$2b$', '$2a$')),
-    true
+    await bcrypt.compare(
+      'LegacyCompatibility1!',
+      legacyHash.replace('$2b$', '$2a$'),
+    ),
+    true,
   );
   assert.equal(await bcrypt.compare('DifferentPassword1!', legacyHash), false);
 });
