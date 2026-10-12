@@ -1,5 +1,5 @@
 # Production OAuth authorization server deployment
-Status: Deployed/published; owner ChatGPT sign-in pending · 2026-10-12
+Status: Deployed/published; ChatGPT three-tool acceptance passed · 2026-10-12
 Updated: 2026-10-12 · Deployment is not authorized in this turn.
 
 ## Scope

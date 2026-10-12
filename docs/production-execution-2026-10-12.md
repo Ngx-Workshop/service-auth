@@ -1,9 +1,8 @@
 # Production launch evidence — 2026-10-12
 
 The user authorized infrastructure remediation, deployment and publication. Both
-services are deployed. Private ChatGPT plugin creation and hosted OAuth discovery succeeded. The owner
-is completing account sign-in/consent in the browser. Account linking and
-ChatGPT tool use remain unverified until that finishes.
+services are deployed. Private ChatGPT account linking, authenticated tool discovery
+and all three read-only tool calls passed with the owner's existing account.
 
 ## Browser form correction
 
@@ -27,7 +26,8 @@ blocker, a native Chrome HTML login POST using a nonexistent deployment.invalid
 account reached authentication and rendered `Invalid email or password`, rather
 than `Invalid form origin`. No account was created or owner's password entered.
 The form returned with empty credentials and a fresh single-use CSRF token.
-Owner account linking and native consent remain pending.
+This was the interim state; subsequent owner consent and successful ChatGPT
+three-tool verification are recorded below.
 
 The owner subsequently completed real sign-in and consent, but Chrome stayed on
 the interaction page. Server inspection confirmed a session and catalog grant,
@@ -40,9 +40,16 @@ Interaction CSP now includes only self and the current client's validated,
 registered redirect origin. Exact redirect URI registration, PKCE, resource,
 Origin, CSRF, default-src none and framing restrictions remain enforced. Grant
 management keeps its self-only form policy. All80 OAuth tests pass, including
-exact login/consent CSP assertions in local and production profiles. Deployment
-and final ChatGPT tool invocation verification of this callback correction remain
-pending until recorded.
+exact login/consent CSP assertions in local and production profiles. PR7 merged as b0176b81fad654b38f5e0896a398fd19b701d43d after CI38321784974
+passed. The reviewed tree matches image revision c4c0a6b6d2666feb9681640a9136135b8997a523.
+Its checksum-verified image was promoted with existing keys and previous image
+retained. Public login returns200 with same-origin referrer policy and CSP
+allowing only self and the registered ChatGPT origin. The isolated native Chrome
+regression reached its callback; the real existing-consent session resumed via
+GET and ChatGPT successfully exchanged its code and invoked all three tools.
+A new first-login/consent POST roundtrip on this final image has not been repeated
+with the owner; do not conflate isolated browser coverage with that additional
+manual journey.
 
 ## Public identities and client
 
@@ -63,14 +70,14 @@ The public signing JWKS contains no private fields.
 
 | Component | Reviewed merged source | Running CI image revision | Validation/publication |
 | --- | --- | --- | --- |
-| service-auth | bc7cd383d1188c7585025a764820bea04a3db0a9 | c9437f4c605af3ab6db4afc509cfca6a062f50be | CI 38320347975; publish 38312384697 (client unchanged) |
+| service-auth | b0176b81fad654b38f5e0896a398fd19b701d43d | c4c0a6b6d2666feb9681640a9136135b8997a523 | CI 38321784974; publish 38312384697 (client unchanged) |
 | service-mcp-gateway | ea230981f39f59973ff5b3d1cdf456035eb1cbff | 9e6630a2e6e059805f9e6580ac845f8b86a5a89a | CI 38315972629; publish 38312987246 |
 
 The CI pull-request merge revisions have the same Git trees as their reviewed
 merged source. Images were transferred as immutable archives, SHA256 checked,
 revision/architecture/non-root labels verified, then promoted explicitly.
-Image names: service-auth:c9437f4c605a and service-mcp-gateway:9e6630a2e6e0.
-Image IDs: auth sha256:5f754163acd7b0d38f196c8781e8abbce106ebaf606e2d940798d4c38c4331ce;
+Image names: service-auth:c4c0a6b6d266 and service-mcp-gateway:9e6630a2e6e0.
+Image IDs: auth sha256:c81eea59b2f78a1a39a13037668122d65367c535f40b76d3d39a7929b1c4f709;
 gateway sha256:d3daa1eab4d4c7161e57feda161c2cb28369af6f6a554d07f4700290389da4fc.
 Edge/backhaul nginx uses pinned digest
 sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94.
@@ -158,10 +165,24 @@ discovery succeeded, selected the stable registered callback, and exposed the
 correct catalog:read scope and native endpoints. The private plugin was created
 with static client ngx-workshop-chatgpt-prod, token auth none and OIDC identity
 sharing disabled. “Continue to Ngx Workshop” opened the real auth-owned sign-in
-interaction. Owner account sign-in/consent is now pending; the earlier builder
-rejection is resolved. DNS/cache was only a hypothesis, not a proven root cause.
-Do not represent account linking or actual ChatGPT tool execution as completed
-until the owner finishes that flow. Never connect the deleted acceptance account.
+interaction. The owner completed sign-in and catalog:read consent. Chrome initially
+blocked the form callback; resuming the approved session completed ChatGPT's token
+exchange. The plugin then displayed its authenticated Read3 tool catalogue.
+A real ChatGPT verification conversation called all three tools successfully:
+
+- list_workshops(sectionId=angular): six public workshop summaries.
+- get_workshop(sectionId=angular, workshopId=6acaffbb4d4ddb09fe84ff6d):
+  What is Angular?, five ordered items (three pages, one lab, one assessment).
+- get_coding_lab(labId=6abca5763b2ecd0f16ae87fa): Sum an array — demo challenge,
+  version1 / 6abca5763b2ecd0f16ae8804, TypeScript, public starter/hint/sample test.
+
+The results matched public service-document/service-coding-labs reads.
+[Verify Ngx Workshop Tools](https://chatgpt.com/c/6acd6bbd-1b60-83e9-8bc5-02e31dc5cc94)
+is the owner's private verification conversation, not a publicly shared link.
+No web search, mutations, hidden tests or solutions were involved. The deleted
+acceptance account was never connected. The earlier builder rejection is resolved;
+DNS/cache was only a hypothesis, not a proven root cause. Existing600-second
+access-token lifetime and no-refresh policy remain: later use may require reconnecting.
 
 Public acceptance runner: test/production-oauth.integration.mjs in the gateway.
 It requires an explicitly provisioned private MCP_TEST_LOGIN_FILE; it never prints
