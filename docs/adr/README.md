@@ -16,3 +16,7 @@ Deployment decisions proposed for future implementation:
 unchecked implementation/release tasks. No deployment is authorized by these ADRs.
 
 - [0007: Launch-supported OAuth metadata](0007-launched-oauth-metadata.md)
+
+Production decisions are implemented after user authorization; see [actual launch evidence](../production-execution-2026-10-12.md). Private ChatGPT linking remains open.
+
+- [0008 — Independent encrypted recovery storage](0008-independent-recovery-storage.md)

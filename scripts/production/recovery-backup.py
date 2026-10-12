@@ -1,14 +1,20 @@
 """DB-host daily consistent encrypted recovery backup, private object upload."""
-import datetime,hashlib,json,os,pathlib,subprocess,tempfile,boto3
+import datetime,hashlib,json,os,pathlib,subprocess,tempfile,urllib.parse,urllib.request,urllib.error,boto3
 os.umask(0o077)
 root=pathlib.Path('/etc/ngx-workshop/recovery')
 spaces=json.loads((root/'backup-spaces.json').read_text())
 endpoint=spaces['SPACES_ENDPOINT'];endpoint=endpoint if endpoint.startswith('https://') else 'https://'+endpoint
-s3=boto3.client('s3',endpoint_url=endpoint,region_name='nyc3',aws_access_key_id=spaces['SPACES_ACCESS_KEY_ID'],aws_secret_access_key=spaces['SPACES_SECRET_ACCESS_KEY'])
+s3=boto3.client('s3',endpoint_url=endpoint,region_name=urllib.parse.urlparse(endpoint).hostname.split('.')[0],aws_access_key_id=spaces['SPACES_ACCESS_KEY_ID'],aws_secret_access_key=spaces['SPACES_SECRET_ACCESS_KEY'])
 def upload(path):
  key='ops-recovery/ngx-oauth/'+path.parent.name+'/'+path.name
  s3.upload_file(str(path),spaces['SPACES_BUCKET'],key,ExtraArgs={'ACL':'private','ContentType':'application/octet-stream','Metadata':{'sha256':hashlib.sha256(path.read_bytes()).hexdigest()}})
- assert s3.head_object(Bucket=spaces['SPACES_BUCKET'],Key=key)['ContentLength']==path.stat().st_size
+ head=s3.head_object(Bucket=spaces['SPACES_BUCKET'],Key=key)
+ assert head['ContentLength']==path.stat().st_size
+ assert head['Metadata']['sha256']==hashlib.sha256(path.read_bytes()).hexdigest()
+ try:
+  urllib.request.urlopen(endpoint+'/'+spaces['SPACES_BUCKET']+'/'+key,timeout=20)
+  raise AssertionError('Recovery object accessible anonymously')
+ except urllib.error.HTTPError as error: assert error.code==403
  print('Verified private encrypted recovery object:',key)
 if '--baseline' in __import__('sys').argv:
  p=pathlib.Path((root/'latest-prechange-backup').read_text().strip())

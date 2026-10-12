@@ -1,4 +1,9 @@
 # Initial client and recovery recommendations
+
+> Current status: services deployed and packages published after user authorization.
+> See [launch evidence](production-execution-2026-10-12.md). Earlier deferred/preflight
+> statements below describe the historical phase; private ChatGPT linking is still open.
+
 2026-10-12 · Preflight follow-up; no deployment or publication
 
 ## User-confirmed launch conditions
