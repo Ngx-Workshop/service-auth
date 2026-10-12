@@ -1,5 +1,5 @@
 # ADR 0004: Public HTTPS issuer and verified OAuth clients
-Status: Accepted for readiness implementation; release operations deferred · 2026-10-12
+Status: Accepted and implemented in production; owner ChatGPT sign-in pending · 2026-10-12
 Feature: [004 deployment](../../specs/004-deployment/spec.md)
 
 ## Context
@@ -72,4 +72,4 @@ Nothing was provisioned, deployed or published.
 
 ## Authorized launch evidence — 2026-10-12
 
-Decision implemented in production after explicit user authorization. See [launch evidence](../production-execution-2026-10-12.md) for reviewed commits/images, persistent secrets, verified TLS/scoped storage, actual recovery/public acceptance and the unresolved private ChatGPT builder error. Earlier no-deploy statements describe the historical phase.
+Decision implemented in production after explicit user authorization. See [launch evidence](../production-execution-2026-10-12.md) for reviewed commits/images, persistent secrets, verified TLS/scoped storage, actual recovery/public acceptance and successful private plugin creation and pending owner account sign-in. Earlier no-deploy statements describe the historical phase.
