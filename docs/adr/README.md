@@ -20,3 +20,5 @@ unchecked implementation/release tasks. No deployment is authorized by these ADR
 Production decisions are implemented after user authorization; see [actual launch evidence](../production-execution-2026-10-12.md). Private ChatGPT linking remains open.
 
 - [0008 — Independent encrypted recovery storage](0008-independent-recovery-storage.md)
+
+- [0009 — Runtime dependency release gate](0009-runtime-dependency-gate.md)
