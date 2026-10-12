@@ -34,7 +34,9 @@ export function interactionHandler(provider, db, auth, config) {
       'Content-Security-Policy',
       "default-src 'none'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'",
     );
-    res.setHeader('Referrer-Policy', 'no-referrer');
+    // no-referrer makes native browser form POSTs send Origin: null.
+    // Keep same-origin submissions verifiable without leaking URLs to clients.
+    res.setHeader('Referrer-Policy', 'same-origin');
     res.setHeader('X-Content-Type-Options', 'nosniff');
     const details = await provider.interactionDetails(req, res);
     const { uid, prompt, params } = details;
