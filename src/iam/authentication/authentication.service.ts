@@ -30,6 +30,14 @@ export class AuthenticationService {
     private readonly jwtService: JwtService,
   ) {}
 
+  private oauthDummyHash: string;
+
+  async onModuleInit() {
+    this.oauthDummyHash = await this.hashService.hash(
+      'oauth-timing-placeholder',
+    );
+  }
+
   private readonly logger = new Logger(AuthenticationService.name);
   private readonly metadataClient = axios.create({
     baseURL: process.env.USER_METADATA_URL, // Used VPC
@@ -78,6 +86,27 @@ export class AuthenticationService {
     if (!isPasswordValid) throw new UnauthorizedException('Invalid password');
 
     return await this.generateTokens(user);
+  }
+
+  // OAuth uses the same account and password verifier, without minting legacy JWTs.
+  async authenticateOAuth(
+    email: string,
+    password: string,
+  ): Promise<string | undefined> {
+    const user = await this.userModel.findOne({ email }).maxTimeMS(3000).exec();
+    const valid = await this.hashService.compare(
+      password,
+      user?.password ?? this.oauthDummyHash,
+    );
+    if (!user || !valid) return undefined;
+    return String(user._id);
+  }
+
+  async findOAuthAccount(id: string): Promise<boolean> {
+    if (!Types.ObjectId.isValid(id)) return false;
+    return !!(await this.userModel
+      .exists({ _id: new Types.ObjectId(id) })
+      .maxTimeMS(3000));
   }
 
   async refreshTokens(refreshTokenDto: RefreshTokenDto) {

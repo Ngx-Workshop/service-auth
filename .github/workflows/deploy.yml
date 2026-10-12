@@ -1,243 +1,89 @@
-name: Deploy Ngx Auth Service
+name: Validate and explicitly publish release
 
 on:
+  pull_request:
   push:
-    branches:
-      - main
+    branches: [main]
   workflow_dispatch:
-
+    inputs:
+      publish:
+        description: Publish the validated package version through trusted OIDC
+        type: boolean
+        default: false
 permissions:
   contents: read
-
 concurrency:
-  group: service-auth-production
-  cancel-in-progress: false
-
+  group: readiness-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22.23.3'
+          package-manager-cache: false
+      - name: Install checksum-pinned isolated MongoDB test binary
+        run: |
+          set -euo pipefail
+          curl --fail --location --proto '=https' --tlsv1.2 --output /tmp/mongo.tgz https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2404-8.0.17.tgz
+          echo 'fe7bccea2ac1eed16867e9ae5a60481455ee30796f285fe67d0d02a6c2abbdda  /tmp/mongo.tgz' | sha256sum --check
+          mkdir -p /tmp/oauth-test-mongo
+          tar -xzf /tmp/mongo.tgz --strip-components=1 -C /tmp/oauth-test-mongo
+          echo '/tmp/oauth-test-mongo/bin' >> "$GITHUB_PATH"
+      - name: Install and validate auth and additive client
+        run: |
+          npm ci
+          npm run test:oauth
+          npm run lint:oauth
+          npx eslint libs/ngx-auth-client/src/oauth-introspection.ts src/app.module.ts
+          npm run lint:oauth:spike
+      - name: Build immutable candidate locally (never push)
+        run: |
+          docker build --label org.opencontainers.image.revision="$GITHUB_SHA" --tag service-auth:candidate .
+          docker image inspect service-auth:candidate --format '{{.Id}}' > image-id.txt
+          docker run --rm --entrypoint node service-auth:candidate -e 'if(process.getuid() !== 1000) process.exit(1); require("fs").accessSync("dist/src/main.js"); require("bcrypt").hashSync("test-only",4)'
+          docker run --rm --entrypoint sh service-auth:candidate -c 'test ! -e /usr/src/app/.oauth-local && test ! -e /usr/src/app/.env && test ! -e /usr/src/app/secrets'
+          docker save service-auth:candidate > image.tar
+          sha256sum image.tar > image.tar.sha256
+      - name: Retain candidate for review
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: service-auth-candidate-${{ github.sha }}
+          path: |
+            image.tar
+            image.tar.sha256
+            image-id.txt
+          retention-days: 3
+          if-no-files-found: error
+
   publish:
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
+    needs: validate
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     permissions:
       contents: read
       id-token: write
-
     steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
-
-      - name: Setup Node 22
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
         with:
-          node-version: '22'
-          check-latest: true
+          node-version: '22.23.3'
           package-manager-cache: false
-
-      - name: Install publishing CLI
+      - name: Build the committed release
         run: |
-          node - <<'NODE'
-          const [major, minor, patch] = process.versions.node.split('.').map(Number);
-          if (major !== 22 || minor < 22 || (minor === 22 && patch < 2)) {
-            throw new Error('npm 12.1.0 requires Node 22.22.2 or newer on Node 22');
-          }
-          NODE
           npm install --global npm@12.1.0
-
-      - name: Install dependencies and build service
-        run: |
           npm ci
-          npm run build
-
-      - name: Set deterministic client version
-        working-directory: libs/ngx-auth-client
-        run: |
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const path = './package.json';
-          const pkg = JSON.parse(fs.readFileSync(path, 'utf8'));
-
-          if (pkg.name !== '@tmdjr/ngx-auth-client') {
-            throw new Error('Unexpected client package');
-          }
-
-          const [major, minor] = String(pkg.version).split('.');
-          const patch = process.env.GITHUB_RUN_NUMBER;
-          if (!/^\d+$/.test(patch || '')) {
-            throw new Error('Missing valid GitHub run number');
-          }
-
-          pkg.version = `${major}.${minor}.${patch}`;
-          fs.writeFileSync(path, JSON.stringify(pkg, null, 2) + '\n');
-          console.log('Publishing', pkg.name, pkg.version);
-          NODE
-
-      - name: Build auth client
-        run: npm run build:ngx-auth-client
-
-      - name: Publish auth client using OIDC
+          npm run build:ngx-auth-client
+      - name: Publish through trusted OIDC
         working-directory: dist/libs/ngx-auth-client
         env:
           NPM_CONFIG_REGISTRY: https://registry.npmjs.org
-        run: npm publish --access public
-
-  deploy:
-    needs: publish
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    permissions:
-      contents: read
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Prepare source and private runtime configuration
-        env:
-          PORT: ${{ secrets.PORT }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          JWT_ISSUER: ${{ secrets.JWT_ISSUER }}
-          JWT_AUDIENCE: ${{ secrets.JWT_AUDIENCE }}
-          JWT_ACCESS_TOKEN_TTL: ${{ secrets.JWT_ACCESS_TOKEN_TTL }}
-          JWT_REFRESH_TOKEN_TTL: ${{ secrets.JWT_REFRESH_TOKEN_TTL }}
-          USER_METADATA_URL: ${{ secrets.USER_METADATA_URL }}
-          NODE_ENV: ${{ secrets.NODE_ENV }}
-          DOMAIN: ${{ secrets.DOMAIN }}
-          SSH_HOST_FINGERPRINT: ${{ secrets.SSH_HOST_FINGERPRINT }}
-        run: |
-          set -euo pipefail
-          umask 077
-
-          python3 - <<'PY'
-          import os
-          from pathlib import Path
-          from urllib.parse import urlsplit, parse_qs
-
-          names = ("PORT", "JWT_SECRET", "MONGODB_URI", "JWT_ISSUER", "JWT_AUDIENCE", "JWT_ACCESS_TOKEN_TTL", "JWT_REFRESH_TOKEN_TTL", "USER_METADATA_URL", "NODE_ENV", "DOMAIN")
-          for name in (*names, "SSH_HOST_FINGERPRINT"):
-              value = os.environ.get(name, "")
-              if not value or any(c in value for c in ("\r", "\n", "\0")):
-                  raise SystemExit(f"Missing or invalid {name}")
-
-          if os.environ["PORT"] != "3000":
-              raise SystemExit("PORT must be 3000 for this deployment")
-
-          try:
-              uri = urlsplit(os.environ["MONGODB_URI"])
-              valid = (
-                  uri.scheme == "mongodb"
-                  and uri.hostname == "10.116.0.2"
-                  and uri.port == 27017
-                  and uri.username == "workshop"
-                  and bool(uri.password)
-                  and uri.path == "/workshop-viewer"
-                  and parse_qs(uri.query).get("authSource") == ["workshop-viewer"]
-              )
-          except ValueError:
-              valid = False
-
-          if not valid:
-              raise SystemExit("MONGODB_URI does not match the restored private database")
-
-          path = Path(".env.next")
-          path.write_text(
-              "".join(f"{name}={os.environ[name]}\n" for name in names)
-          )
-          path.chmod(0o600)
-          PY
-
-          git archive --format=tar --output=deploy-source.tar HEAD
-
-      - name: Copy source and runtime configuration
-        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345 # v1.0.0
-        with:
-          version: '1.8.0'
-          host: ${{ secrets.DROPLET_IP }}
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-          source: 'deploy-source.tar,.env.next'
-          target: '/opt/ngx-nestjs-services/ngx-auth-service'
-          overwrite: true
-
-      - name: Build and recreate service
-        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2 # v1.2.5
-        with:
-          version: '1.8.2'
-          host: ${{ secrets.DROPLET_IP }}
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-          command_timeout: 20m
-          script: |
-            set -eu
-            umask 077
-            cd /opt/ngx-nestjs-services/ngx-auth-service
-            trap 'rm -f .env.next deploy-source.tar' EXIT
-
-            chmod 600 .env.next
-            tar -xf deploy-source.tar
-            rm -f deploy-source.tar
-            test -f .dockerignore
-
-            docker network inspect ngx-net >/dev/null 2>&1 || {
-              docker network create ngx-net ||
-                docker network inspect ngx-net >/dev/null
-            }
-
-            docker network connect ngx-net ngx-workshop-bff 2>/dev/null || true
-            docker network connect ngx-net ngx-mfe-orchestrator 2>/dev/null || true
-
-            docker build -t ngx-auth-service .
-
-            if docker container inspect ngx-auth-service >/dev/null 2>&1; then
-              previous_image=$(docker inspect --format '{{.Image}}' ngx-auth-service)
-              docker image tag "$previous_image" ngx-auth-service:previous
-            fi
-            if [ -f .env ]; then
-              install -m 600 .env .env.previous
-            fi
-            install -m 600 .env.next .env
-            rm -f .env.next
-
-            if docker container inspect ngx-auth-service >/dev/null 2>&1; then
-              docker stop ngx-auth-service
-              docker rm ngx-auth-service
-            fi
-
-            docker run -d \
-              --name ngx-auth-service \
-              --env-file .env \
-              --network ngx-net \
-              --restart unless-stopped \
-              -p 3000:3000 \
-              ngx-auth-service
-
-            attempt=0
-            until docker exec ngx-auth-service node -e '
-              const net = require("node:net");
-              const socket = net.connect(3000, "127.0.0.1");
-              socket.setTimeout(2000);
-              socket.on("connect", () => {
-                socket.end();
-                process.exit(0);
-              });
-              socket.on("error", () => process.exit(1));
-              socket.on("timeout", () => process.exit(1));
-            ' >/dev/null 2>&1; do
-              attempt=$((attempt + 1))
-              if [ "$attempt" -ge 30 ]; then
-                echo "Service failed its startup check" >&2
-                exit 1
-              fi
-              sleep 2
-            done
-
-      - name: Remove temporary deployment files
-        if: always()
-        run: rm -f .env.next deploy-source.tar
+        run: npm publish --access public --provenance
