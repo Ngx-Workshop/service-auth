@@ -45,6 +45,15 @@ export function interactionHandler(provider, db, auth, config) {
     );
     if (!client || !['login', 'consent'].includes(prompt.name))
       throw new Error('Unsupported interaction');
+    if (!client.redirect_uris.includes(params.redirect_uri))
+      throw new Error('Unregistered interaction callback');
+    // Chrome applies form-action to redirects after the native form POST.
+    // Only the current client's registered callback origin may receive them.
+    const callbackOrigin = new URL(params.redirect_uri).origin;
+    res.setHeader(
+      'Content-Security-Policy',
+      `default-src 'none'; form-action 'self' ${callbackOrigin}; frame-ancestors 'none'; base-uri 'none'`,
+    );
     async function page(message = '') {
       const csrf = randomBytes(32).toString('base64url');
       await forms.insertOne(

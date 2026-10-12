@@ -29,6 +29,21 @@ than `Invalid form origin`. No account was created or owner's password entered.
 The form returned with empty credentials and a fresh single-use CSRF token.
 Owner account linking and native consent remain pending.
 
+The owner subsequently completed real sign-in and consent, but Chrome stayed on
+the interaction page. Server inspection confirmed a session and catalog grant,
+and an unexchanged authorization code; no token values or account identifiers
+were exported. An isolated native Chrome form reproduced the cause: a POST with
+`form-action 'self'` remained on the original page when its303 redirect crossed
+origins; allowing the registered callback origin reached the callback. See the
+[CSP form-action redirect discussion](https://github.com/w3c/webappsec-csp/issues/8).
+Interaction CSP now includes only self and the current client's validated,
+registered redirect origin. Exact redirect URI registration, PKCE, resource,
+Origin, CSRF, default-src none and framing restrictions remain enforced. Grant
+management keeps its self-only form policy. All80 OAuth tests pass, including
+exact login/consent CSP assertions in local and production profiles. Deployment
+and final ChatGPT tool invocation verification of this callback correction remain
+pending until recorded.
+
 ## Public identities and client
 
 - MCP resource: https://mcp.ngx-workshop.io/mcp.
