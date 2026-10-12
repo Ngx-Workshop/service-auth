@@ -22,8 +22,12 @@ passed all80 OAuth tests, lint, runtime audit and image checks. Its tree matches
 CI revision c9437f4c605af3ab6db4afc509cfca6a062f50be. The checksum-verified image
 was promoted with existing persistent secrets and no host ports; previous image
 retained. Public fresh login returns200 with the corrected same-origin policy,
-and gateway discovery remains200. Native Chrome submission and owner linking
-are still pending; the browser check was paused by a password-manager popup.
+and gateway discovery remains200. After the owner dismissed the password-manager
+blocker, a native Chrome HTML login POST using a nonexistent deployment.invalid
+account reached authentication and rendered `Invalid email or password`, rather
+than `Invalid form origin`. No account was created or owner's password entered.
+The form returned with empty credentials and a fresh single-use CSRF token.
+Owner account linking and native consent remain pending.
 
 ## Public identities and client
 
