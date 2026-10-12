@@ -1,9 +1,9 @@
 # Production launch evidence — 2026-10-12
 
 The user authorized infrastructure remediation, deployment and publication. Both
-services are deployed. Private ChatGPT account linking remains unverified: its
-builder rejects the settings before opening OAuth. This is the only outstanding
-client acceptance item; do not represent the private connection as installed.
+services are deployed. Private ChatGPT plugin creation and hosted OAuth discovery succeeded. The owner
+is completing account sign-in/consent in the browser. Account linking and
+ChatGPT tool use remain unverified until that finishes.
 
 ## Public identities and client
 
@@ -114,14 +114,15 @@ launch account was removed by exact ID/email match, leaving the original21 users
 Legacy public invalid sign-in remains401;80 auth regressions and49 gateway unit/
 40 e2e checks passed CI. Public legacy sign-in also passed using an account hashed by the old bcrypt5 image: Secure/HttpOnly/Strict JWT cookie, authenticated validation and own-user metadata read, plus false validation without a cookie. Full legacy UI navigation was not manually exercised.
 
-ChatGPT's builder still reports “Some app settings were rejected” and OAuth discovery
-failure, including with verified manual endpoints/client settings. No OAuth login or
-private plugin was created. A bounded edge path/status probe saw no corresponding
-requests; DNS/cache or hosted validation is a hypothesis, not an established cause.
-Do not weaken bearer, resource, callback, SSRF or TLS checks to bypass that error.
-The prepared browser connection remains available for troubleshooting. When it
-accepts the settings, the owner must sign in with their own account and consent;
-never link ChatGPT to the deleted temporary acceptance account.
+ChatGPT initially rejected settings and could not discover OAuth. A later hosted
+discovery succeeded, selected the stable registered callback, and exposed the
+correct catalog:read scope and native endpoints. The private plugin was created
+with static client ngx-workshop-chatgpt-prod, token auth none and OIDC identity
+sharing disabled. “Continue to Ngx Workshop” opened the real auth-owned sign-in
+interaction. Owner account sign-in/consent is now pending; the earlier builder
+rejection is resolved. DNS/cache was only a hypothesis, not a proven root cause.
+Do not represent account linking or actual ChatGPT tool execution as completed
+until the owner finishes that flow. Never connect the deleted acceptance account.
 
 Public acceptance runner: test/production-oauth.integration.mjs in the gateway.
 It requires an explicitly provisioned private MCP_TEST_LOGIN_FILE; it never prints
