@@ -62,4 +62,4 @@ older consumers until their own TLS migration; auth requires verified TLS.
 
 ## Launch acceptance evidence
 
-X001–X005 completed; [immutable release, infrastructure, recovery and public acceptance evidence](../../docs/production-execution-2026-10-12.md). X006 remains open: ChatGPT rejects settings before OAuth login. Historical T-items above combine broader rotation/client journeys; do not imply those unexercised portions were completed. No production key regeneration or live DB restore occurred.
+X001–X005 completed; [immutable release, infrastructure, recovery and public acceptance evidence](../../docs/production-execution-2026-10-12.md). X006 remains open: private plugin creation/discovery succeeded; owner sign-in/consent is pending. Historical T-items above combine broader rotation/client journeys; do not imply those unexercised portions were completed. No production key regeneration or live DB restore occurred.

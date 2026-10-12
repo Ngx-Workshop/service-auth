@@ -128,7 +128,7 @@ deployed or published.
 
 Services are deployed and packages published after explicit authorization. Public
 OAuth, three real catalog tools, revocation and isolated recovery passed. Private
-ChatGPT linking remains open because its builder rejects settings before login.
+ChatGPT plugin creation/discovery succeeded; owner account sign-in and consent remain pending.
 See [launch evidence and operations](docs/production-execution-2026-10-12.md) for
 exact versions, verified boundaries, recovery paths and remaining action. Earlier
 phase-specific deferred statements are historical.

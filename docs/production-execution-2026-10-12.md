@@ -1,9 +1,9 @@
 # Production launch evidence — 2026-10-12
 
 The user authorized infrastructure remediation, deployment and publication. Both
-services are deployed. Private ChatGPT account linking remains unverified: its
-builder rejects the settings before opening OAuth. This is the only outstanding
-client acceptance item; do not represent the private connection as installed.
+services are deployed. Private ChatGPT plugin creation and hosted OAuth discovery succeeded. The owner
+is completing account sign-in/consent in the browser. Account linking and
+ChatGPT tool use remain unverified until that finishes.
 
 ## Public identities and client
 
@@ -24,13 +24,15 @@ The public signing JWKS contains no private fields.
 
 | Component | Reviewed merged source | Running CI image revision | Validation/publication |
 | --- | --- | --- | --- |
-| service-auth | 665106407c829c4e40817cd7684fff2f504c0a3c | 40a588d0ca885c851c989fe1893fdf284bf0726b | CI 38313706735; publish 38312384697 |
-| service-mcp-gateway | 382167dad9575773de0eff2dc135c14eb7ace47e | b9e793af95c9f74f699820956b4c5345867f946c | CI 38313935033; publish 38312987246 |
+| service-auth | f3ff49468699ca5151693adf073c39b95238cd9d | b013fb9f6cc5a96e31217237b7f4b13d86e81619 | CI 38315988019; publish 38312384697 |
+| service-mcp-gateway | ea230981f39f59973ff5b3d1cdf456035eb1cbff | 9e6630a2e6e059805f9e6580ac845f8b86a5a89a | CI 38315972629; publish 38312987246 |
 
 The CI pull-request merge revisions have the same Git trees as their reviewed
 merged source. Images were transferred as immutable archives, SHA256 checked,
 revision/architecture/non-root labels verified, then promoted explicitly.
-Image names: service-auth:40a588d0ca88 and service-mcp-gateway:b9e793af95c9.
+Image names: service-auth:b013fb9f6cc5 and service-mcp-gateway:9e6630a2e6e0.
+Image IDs: auth sha256:d34034caf4aa840b931b4468e6fc0d9f0426d2d80bea2de0a7fb2ddef0b9cdad;
+gateway sha256:d3daa1eab4d4c7161e57feda161c2cb28369af6f6a554d07f4700290389da4fc.
 Edge/backhaul nginx uses pinned digest
 sha256:0985e772fb9f729e6fa0980da05fca5d9c468e870eed43071545afa9d2e27d94.
 Nginx owner PR1 was merged and its public/native routing activated.
@@ -74,15 +76,15 @@ never regenerate production keys on restart or restore shared data for app rollb
 Fresh encrypted stopped-DB physical baseline 20261012T212935Z: 183,468,726 bytes.
 Isolated physical restore preserved 21 existing users in 4.61 seconds.
 Daily consistent logical backups include oplog, replica key/config, Mongo TLS and
-scoped credential recovery. Latest cleaned-account snapshot 20261012T221113Z
-restored 21 users and strict OAuth schema in 3.93 seconds. The isolated clone
+scoped credential recovery. Final cleaned-account snapshot 20261012T222708Z
+restored 21 users and strict OAuth schema in 3.98 seconds. The isolated clone
 invalidates restored OAuth state before reuse, preventing revoked grants from reviving.
 No restoration into the live database occurred.
 
 Private independent bucket ngx-workshop-oauth-recovery, SFO3, has a dedicated
 ngx-oauth-recovery-prod key limited to that bucket's Read/Write/Delete operations.
 The key was proven unable to list the asset bucket. Objects are explicitly private;
-length/checksum metadata and anonymous 403 were verified. The existing uploader
+length/checksum metadata and anonymous 403 were verified. An independently downloaded cloud archive matched the SHA256 of the archive used in the isolated restore. The existing uploader
 key and asset bucket are preserved. Earlier encrypted bootstrap copies remain
 redundant recovery copies; the backup job now uses only the dedicated key.
 Daily systemd timer ngx-oauth-recovery.timer is enabled/active (04:00 UTC plus jitter).
@@ -109,17 +111,18 @@ returns403; missing bearer returns401 before JSON parsing. A controlled auth out
 returned503 before JSON/tool execution and recovery returned public discovery200.
 Restart preserved keys and the authenticated browser session. The temporary owned
 launch account was removed by exact ID/email match, leaving the original21 users.
-Legacy public invalid sign-in remains401;79 auth regressions and49 gateway unit/
-40 e2e checks passed CI. Full legacy user browser journeys were not manually exercised.
+Legacy public invalid sign-in remains401;80 auth regressions and49 gateway unit/
+40 e2e checks passed CI. Public legacy sign-in also passed using an account hashed by the old bcrypt5 image: Secure/HttpOnly/Strict JWT cookie, authenticated validation and own-user metadata read, plus false validation without a cookie. Full legacy UI navigation was not manually exercised.
 
-ChatGPT's builder still reports “Some app settings were rejected” and OAuth discovery
-failure, including with verified manual endpoints/client settings. No OAuth login or
-private plugin was created. A bounded edge path/status probe saw no corresponding
-requests; DNS/cache or hosted validation is a hypothesis, not an established cause.
-Do not weaken bearer, resource, callback, SSRF or TLS checks to bypass that error.
-The prepared browser connection remains available for troubleshooting. When it
-accepts the settings, the owner must sign in with their own account and consent;
-never link ChatGPT to the deleted temporary acceptance account.
+ChatGPT initially rejected settings and could not discover OAuth. A later hosted
+discovery succeeded, selected the stable registered callback, and exposed the
+correct catalog:read scope and native endpoints. The private plugin was created
+with static client ngx-workshop-chatgpt-prod, token auth none and OIDC identity
+sharing disabled. “Continue to Ngx Workshop” opened the real auth-owned sign-in
+interaction. Owner account sign-in/consent is now pending; the earlier builder
+rejection is resolved. DNS/cache was only a hypothesis, not a proven root cause.
+Do not represent account linking or actual ChatGPT tool execution as completed
+until the owner finishes that flow. Never connect the deleted acceptance account.
 
 Public acceptance runner: test/production-oauth.integration.mjs in the gateway.
 It requires an explicitly provisioned private MCP_TEST_LOGIN_FILE; it never prints
@@ -137,4 +140,4 @@ Gateway pins Swagger's js-yaml5.4.3 through a narrow override because its declar
 5.3.0 dependency has an advisory. CI now rejects high/critical production
 dependency advisories with npm audit --omit=dev --audit-level=high. Development
 toolchain advisories are separate remaining maintenance work, not removed by this
-runtime-only gate. Final security image promotion evidence follows below.
+runtime-only gate. Both corrected CI images were promoted after review/merge and archive checksum verification, retaining compatible previous containers. Public three-tool acceptance, token/browser revocation, denied consent, legacy sign-in and key/session persistence across restart all passed again. Both runtime audits report zero findings. The historical Jest npm test scaffold contains no tests; the80 OAuth tests are the actual auth gate (plus30 separately passing engine-spike checks).
