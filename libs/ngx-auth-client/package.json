@@ -1,6 +1,6 @@
 {
   "name": "@tmdjr/ngx-auth-client",
-  "version": "0.0.21",
+  "version": "0.0.66",
   "description": "NestJS Auth Client for remote access token validation",
   "main": "index.js",
   "types": "index.d.ts",
@@ -19,5 +19,10 @@
     "type": "git",
     "url": "git+https://github.com/Ngx-Workshop/service-auth.git",
     "directory": "libs/ngx-auth-client"
-  }
+  },
+  "files": [
+    "**/*.js",
+    "**/*.d.ts",
+    "README.md"
+  ]
 }

@@ -1,79 +1,24 @@
-# NGX Auth Service
+# @tmdjr/ngx-auth-client
 
-🚀 Authentication & Authorization microservice built with NestJS, JWT, and MongoDB for Ngx Workshop microservices architecture.
+Legacy Nest cookie/JWT guards, decorators and DTO exports remain available.
+The additive local version `0.0.22-local.0` introduces `OAuthIntrospectionClient`,
+`OAuthPrincipal` and `OAuthVerificationError` without an MCP dependency.
 
-## Features
+Construct with explicit `issuer`, `introspectionUrl` (same issuer origin,
+`/oauth/introspect`), `resource`, `clientId` and `clientSecret`. HTTPS is required;
+`allowLocalHttp: true` permits loopback HTTP for local tests. Issuer/resource URLs
+are canonical without trailing slash, credentials, query or fragment. The issuer
+is an origin. Credentials authenticate the resource server, not an end user.
 
-- **User Authentication:** Secure user login and signup using JWT.
-- **Role-Based Access Control (RBAC):** Fine‑grained authorization via NestJS guards and roles.
-- **Token Management:** Generation and validation of access and refresh tokens.
-- **MongoDB Integration:** Reliable storage for users, roles, and permissions.
-- **Modular & Scalable:** Built for easy integration into microservice architectures.
+`verifyAccessToken(token)` returns an immutable principal after native HTTP
+introspection and strict active/Bearer/issuer/audience/subject/client/scope/expiry
+validation. It accepts the auth owner's 256-bit opaque access-token profile,
+never decodes JWTs, forwards cookies, retries redirects or caches authorization.
+Defaults: 3-second total deadline and 64-KiB streamed response cap. Options
+`timeoutMs` and `maxResponseBytes` may lower limits (timeout maximum 10 seconds).
+Errors carry sanitized categories `invalid_token`, `auth_unavailable`, or
+`invalid_auth_response`; callers enforce required scopes separately.
 
-## Tech Stack
-
-- [NestJS](https://nestjs.com/)
-- [MongoDB](https://www.mongodb.com/) & [Mongoose](https://mongoosejs.com/)
-- [JSON Web Tokens (JWT)](https://jwt.io/)
-- [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/)
-- [GitHub Actions](https://github.com/features/actions)
-
-## Prerequisites
-
-- Docker & Docker Compose
-- MongoDB instance
-- Node.js (>=18)
-- NestJS CLI
-
-## Installation
-
-```bash
-git clone https://github.com/ngx-workshop/ngx-auth-service.git
-cd ngx-auth-service
-npm install
-```
-
-## Environment Variables
-
-Create a `.env` file in the project root (see `.env.sample` for reference):
-
-## Running the App
-
-### Development
-
-```bash
-npm run start:dev
-```
-
-### Production (Docker)
-
-```bash
-docker compose up -d
-```
-
-## 📜 API Endpoints
-
-- **POST** `/sign-up`
-  Register a new user
-
-- **POST** `/sign-in`
-  Authenticate existing user
-
-- **GET** `/sign-out`
-  Logout the user
-
-- **GET** `/is-user-logged-in`
-  Check user session status
-
-- **GET** `/user-metadata`
-  Retrieve user profile details
-
-## 🔐 Security
-
-- JWT‑based authentication
-- Environment variables stored securely via GitHub Secrets
-- MongoDB secured by firewall rules and scoped permissions
-
-## 🤝 Contributing
-
-Contributions are welcome! Please submit a PR or open an issue for bugs or suggestions.
+Build from service-auth with `npm run build:ngx-auth-client`, then pack from
+`dist/libs/ngx-auth-client`. The gateway consumes a checked-in local tarball;
+this version has not been published. Never log raw tokens or introspection secrets.

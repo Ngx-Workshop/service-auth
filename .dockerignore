@@ -9,3 +9,12 @@
 **/*.tsbuildinfo
 **/npm-debug.log*
 deploy-source.tar
+**/.oauth-local
+**/secrets
+**/*.pem
+**/*.key
+.env.next
+.env.previous
+specs
+spikes
+test
