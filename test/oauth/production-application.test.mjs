@@ -274,6 +274,10 @@ test('production Nest auth uses TLS authenticated scoped Mongo and trusted proxy
       }
       const csrf = result.text.match(/name="csrf" value="([^"]+)"/)?.[1];
       assert.equal(result.headers['referrer-policy'], 'same-origin');
+      assert.equal(
+        result.headers['content-security-policy'],
+        "default-src 'none'; form-action 'self' https://client.example.test; frame-ancestors 'none'; base-uri 'none'",
+      );
       assert(csrf, `Secure production form required (status ${result.status})`);
       const login = result.text.includes('<h1>Sign in</h1>');
       const submitted = await call(

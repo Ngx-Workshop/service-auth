@@ -178,6 +178,10 @@ async function authorize(options = {}) {
       res.headers.get('content-security-policy'),
       /frame-ancestors 'none'/,
     );
+    assert.equal(
+      res.headers.get('content-security-policy'),
+      `default-src 'none'; form-action 'self' ${new URL(redirect).origin}; frame-ancestors 'none'; base-uri 'none'`,
+    );
     const csrf = html.match(/name="csrf" value="([^"]+)"/)[1];
     const login = html.includes('<h1>Sign in</h1>');
     if (!login) {
