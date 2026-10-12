@@ -23,9 +23,10 @@ const runtime=names.concat(['users']).map(collection=>({resource:{db:d.getName()
 runtime.push({resource:{db:d.getName(),collection:''},actions:['listCollections']});
 const provision=names.map(collection=>({resource:{db:d.getName(),collection},actions:['createCollection','createIndex','collMod','listIndexes']}));
 provision.push({resource:{db:d.getName(),collection:''},actions:['listCollections']});
+const canonical=xs=>JSON.stringify(xs.map(p=>({db:p.resource.db,collection:p.resource.collection,actions:[...p.actions].sort()})).sort((a,b)=>a.collection.localeCompare(b.collection)));
 for(const [role,privileges] of [['ngx_oauth_runtime',runtime],['ngx_oauth_provisioner',provision]]) {
  if(!d.getRole(role)) d.createRole({role,privileges,roles:[]});
- else assert.eq(JSON.stringify(d.getRole(role).privileges),JSON.stringify(privileges),'Existing role differs; operator review required');
+ else assert(canonical(d.getRole(role,{showPrivileges:true}).privileges)===canonical(privileges),'Existing role differs; operator review required');
 }
 for(const [user,secret,role] of [['ngx_oauth_auth',pw.runtime,'ngx_oauth_runtime'],['ngx_oauth_provisioner',pw.provisioner,'ngx_oauth_provisioner']]) {
  if(!d.getUser(user)) d.createUser({user,pwd:secret,roles:[role]});

@@ -228,6 +228,13 @@ test('production Nest auth uses TLS authenticated scoped Mongo and trusted proxy
     const discovery = await call('/.well-known/oauth-authorization-server');
     assert.equal(discovery.status, 200);
     assert.equal(JSON.parse(discovery.text).issuer, config.issuer);
+    assert.deepEqual(JSON.parse(discovery.text).scopes_supported, [
+      'catalog:read',
+    ]);
+    assert.deepEqual(
+      JSON.parse(discovery.text).token_endpoint_auth_methods_supported.sort(),
+      ['client_secret_basic', 'none'],
+    );
     assert.equal(
       (
         await fetch(

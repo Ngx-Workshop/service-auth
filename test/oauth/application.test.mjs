@@ -630,6 +630,11 @@ test('discovery advertises only the supported OAuth endpoints and grant', async 
   assert.equal(doc.revocation_endpoint, config.issuer + '/oauth/revoke');
   assert.deepEqual(doc.grant_types_supported, ['authorization_code']);
   assert.deepEqual(doc.code_challenge_methods_supported, ['S256']);
+  assert.deepEqual(doc.scopes_supported, ['catalog:read']);
+  assert.deepEqual(doc.token_endpoint_auth_methods_supported.sort(), [
+    'client_secret_basic',
+    'none',
+  ]);
   assert.equal(doc.registration_endpoint, undefined);
   assert.notEqual(doc.client_id_metadata_document_supported, true);
   const rejectedHost = await new Promise((resolve, reject) => {

@@ -100,6 +100,7 @@ export async function installOAuth(
       },
     ],
     scopes: ['catalog:read'],
+    clientAuthMethods: ['none', 'client_secret_basic'],
     responseTypes: ['code'],
     clockTolerance: 0,
     ttl: {
@@ -220,6 +221,22 @@ export async function installOAuth(
   });
 
   provider.proxy = production;
+  // The engine always includes openid internally. The launched public clients
+  // support catalog OAuth only; never advertise scopes they cannot request.
+  provider.use(async (ctx, next) => {
+    await next();
+    if (
+      [
+        '/.well-known/oauth-authorization-server',
+        '/.well-known/openid-configuration',
+      ].includes(ctx.path) &&
+      ctx.status === 200 &&
+      ctx.body &&
+      typeof ctx.body === 'object'
+    )
+      ctx.body.scopes_supported = ['catalog:read'];
+  });
+
   provider.on('server_error', (_ctx, error) => {
     const session = transactions.getStore();
     if (session) session.oauthError = error;
