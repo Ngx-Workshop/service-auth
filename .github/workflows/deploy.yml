@@ -1,4 +1,4 @@
-name: Validate and explicitly publish release
+name: Validate, deploy service, and explicitly publish package
 
 on:
   pull_request:
@@ -14,7 +14,7 @@ permissions:
   contents: read
 concurrency:
   group: readiness-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 jobs:
   validate:
     runs-on: ubuntu-24.04
@@ -61,6 +61,70 @@ jobs:
             image-id.txt
           retention-days: 3
           if-no-files-found: error
+
+  deploy:
+    needs: validate
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    concurrency:
+      group: service-auth-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check deployment configuration
+        env:
+          DROPLET_IP: ${{ secrets.DROPLET_IP }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_HOST_FINGERPRINT: ${{ secrets.SSH_HOST_FINGERPRINT }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import os
+          for name in ("DROPLET_IP", "SSH_PRIVATE_KEY", "SSH_HOST_FINGERPRINT"):
+              if not os.environ.get(name):
+                  raise SystemExit(f"::error::Missing required deployment secret: {name}")
+          PY
+      - name: Download the validated image
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+        with:
+          name: service-auth-candidate-${{ github.sha }}
+          path: candidate
+      - name: Verify and stage promotion helper
+        run: |
+          set -euo pipefail
+          cd candidate
+          sha256sum --check image.tar.sha256
+          cp ../scripts/production/promote-image.py .
+      - name: Transfer the validated image
+        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
+        with:
+          version: '1.8.0'
+          host: ${{ secrets.DROPLET_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
+          source: candidate/image.tar,candidate/image.tar.sha256,candidate/promote-image.py
+          target: /opt/ngx-nestjs-services/ngx-auth-service/deployments/${{ github.sha }}
+          strip_components: 1
+          overwrite: true
+      - name: Promote image with persistent production configuration
+        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
+        with:
+          version: '1.8.2'
+          host: ${{ secrets.DROPLET_IP }}
+          username: root
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
+          command_timeout: 10m
+          script: |
+            set -eu
+            umask 077
+            cd /opt/ngx-nestjs-services/ngx-auth-service/deployments/${{ github.sha }}
+            python3 promote-image.py auth "$PWD" '${{ github.sha }}'
+            rm -f image.tar image.tar.sha256 promote-image.py
 
   publish:
     needs: validate

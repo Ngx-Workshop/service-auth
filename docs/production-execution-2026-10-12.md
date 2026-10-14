@@ -89,8 +89,11 @@ Auth-client retains legacy exports and adds introspection. Gateway 1.0.0 deliber
 replaces seed CRUD exports; it publishes the three stable MCP schemas/models.
 Registry tarball content/integrity and gateway's registry-pinned consumer were checked.
 Main is protected by required strict validate, enforced for administrators, without
-force pushes or deletion. PR/push builds do not publish or deploy. Publication is
-manual; operator promotion is explicit. These evidence commits do not change the
+force pushes or deletion. At launch, PR/push builds did not publish or deploy.
+Publication was manual and operator promotion was explicit. The current
+[delivery workflow](../README.md#continuous-deployment) automatically promotes
+validated `main` push images; package publication remains manual.
+These evidence commits do not change the
 already deployed application code or require another package publication.
 
 ## Infrastructure and secret boundaries

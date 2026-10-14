@@ -132,3 +132,26 @@ Private ChatGPT account linking and all three read-only tool calls passed.
 See [launch evidence and operations](docs/production-execution-2026-10-12.md) for
 exact versions, verified boundaries, recovery paths and remaining action. Earlier
 phase-specific deferred statements are historical.
+
+## Continuous deployment
+
+The [release workflow](.github/workflows/deploy.yml) validates pull requests and
+pushes to `main`. After successful validation, a `main` push automatically
+transfers the checksum-verified CI image to the application host and runs the
+[existing promotion helper](scripts/production/promote-image.py). Deployment
+does not depend on npm publication. Production deployments are serialized and
+are not canceled by newer pushes.
+
+Configure repository Actions secrets `DROPLET_IP` (application host),
+`SSH_PRIVATE_KEY` (root SSH access), and `SSH_HOST_FINGERPRINT` (the independently
+verified SSH host fingerprint). Missing secrets fail deployment explicitly.
+The host must already have Docker, Python 3, the `ngx-net` network, the existing
+`ngx-auth-service` container, and persistent production configuration at
+`/etc/ngx-workshop/oauth/auth/runtime.env`,
+`/etc/ngx-workshop/oauth/auth/config.json`, and `/etc/ngx-workshop/pki/ca.pem`.
+Deployment preserves those files, retains the previous container for recovery,
+and rolls back if the new container fails its startup check. It does not
+provision infrastructure, rotate secrets, or publish a host port.
+
+Package publication remains opt-in: manually run the workflow on `main` with
+`publish=true`. Manual runs and pull requests do not deploy the service.
