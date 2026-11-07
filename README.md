@@ -155,3 +155,5 @@ provision infrastructure, rotate secrets, or publish a host port.
 
 Package publication remains opt-in: manually run the workflow on `main` with
 `publish=true`. Manual runs and pull requests do not deploy the service.
+
+Administrator creation: [account provisioning and isolated local setup](docs/admin-user-provisioning.md).

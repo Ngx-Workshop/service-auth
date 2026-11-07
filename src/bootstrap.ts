@@ -1,3 +1,7 @@
+import {
+  assertLocalAdminMode,
+  localAdminMode,
+} from './local-admin-development';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { NestFactory } from '@nestjs/core';
 import { getConnectionToken } from '@nestjs/mongoose';
@@ -23,6 +27,7 @@ const loadNative = require('./oauth/loader.cjs') as (url: string) => Promise<{
 }>;
 
 export async function createAuthApp() {
+  assertLocalAdminMode();
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
   });
@@ -45,7 +50,14 @@ export async function createAuthApp() {
     app.use(cookieParser());
     app.useBodyParser('json');
     app.useBodyParser('urlencoded', { extended: true });
-    return { app, host: config ? config.runtime.bind : '0.0.0.0' };
+    return {
+      app,
+      host: localAdminMode()
+        ? '127.0.0.1'
+        : config
+          ? config.runtime.bind
+          : '0.0.0.0',
+    };
   } catch (error) {
     await app.close();
     throw error;

@@ -1,3 +1,4 @@
+import { localAdminMode } from '../../local-admin-development';
 import {
   ConflictException,
   Inject,
@@ -17,6 +18,7 @@ import { IActiveUserData } from '../interfaces/active-user-data.interface';
 import { IUser } from '../interfaces/user.interface';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { RoleDto } from './dto/role.dto';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { UserAuthDto } from './dto/user-auth.dto';
 import { User, UserDocument } from './schemas/user.schema';
 
@@ -40,7 +42,7 @@ export class AuthenticationService {
 
   private readonly logger = new Logger(AuthenticationService.name);
   private readonly metadataClient = axios.create({
-    baseURL: process.env.USER_METADATA_URL, // Used VPC
+    baseURL: localAdminMode() ? 'http://127.0.0.1:3004' : process.env.USER_METADATA_URL,
     timeout: 3000,
   });
 
@@ -54,6 +56,44 @@ export class AuthenticationService {
     } catch (err) {
       // Non-blocking on purpose
       this.logger.warn(`Failed to upsert UserMetadata for ${uuid}`, err);
+    }
+  }
+
+  async provisionUser(dto: AdminCreateUserDto, actor: string) {
+    const email = dto.email.trim().toLowerCase();
+    const previous = await this.userModel.findOne({
+      provisioningRequestId: dto.requestId,
+    });
+    const result = (user: UserDocument) => {
+      if (
+        user.provisioningActor !== actor ||
+        user.email !== email ||
+        user.role !== dto.role
+      )
+        throw new ConflictException(
+          'Creation request conflicts with an existing account',
+        );
+      return { uuid: String(user._id), email: user.email, role: user.role };
+    };
+    if (previous) return result(previous);
+    try {
+      const user = await this.userModel.create({
+        email,
+        role: dto.role,
+        password: await this.hashService.hash(dto.password),
+        provisioningRequestId: dto.requestId,
+        provisioningActor: actor,
+      });
+      return result(user);
+    } catch (error) {
+      if (error.code === MongoErrorCodes.DuplicateKey) {
+        const retry = await this.userModel.findOne({
+          provisioningRequestId: dto.requestId,
+        });
+        if (retry) return result(retry);
+        throw new ConflictException('Email already exists');
+      }
+      throw error;
     }
   }
 

@@ -8,6 +8,7 @@ import {
   Post,
   Put,
   Res,
+  ValidationPipe,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { ActiveUser } from '../decorators/active-user.decorator';
@@ -18,6 +19,7 @@ import { Role } from '../enums/role.enum';
 import { IActiveUserData } from '../interfaces/active-user-data.interface';
 import { AuthenticationService } from './authentication.service';
 import { RoleDto } from './dto/role.dto';
+import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { UserAuthDto } from './dto/user-auth.dto';
 
 const cookieOptions = {
@@ -32,6 +34,16 @@ export class AuthenticationController {
   logger = new Logger(AuthenticationController.name);
 
   constructor(private readonly authService: AuthenticationService) {}
+
+  @Post('admin/users')
+  @Roles(Role.Admin)
+  async createUser(
+    @ActiveUser() actor: IActiveUserData,
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    dto: AdminCreateUserDto,
+  ) {
+    return this.authService.provisionUser(dto, actor.sub);
+  }
 
   @Post('sign-up')
   @Auth(AuthType.None)
@@ -84,7 +96,10 @@ export class AuthenticationController {
   @Put('role')
   @Roles(Role.Admin)
   @HttpCode(HttpStatus.OK)
-  async updateUserRole(@Body() role: RoleDto) {
+  async updateUserRole(
+    @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+    role: RoleDto,
+  ) {
     this.logger.log(`Updating user role: ${JSON.stringify(role)}`);
     return this.authService.updateUserRole(role);
   }

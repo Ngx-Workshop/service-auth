@@ -6,6 +6,9 @@ export type UserDocument = HydratedDocument<User>;
 
 @Schema()
 export class User {
+  @Prop({ unique: true, sparse: true }) provisioningRequestId?: string;
+  @Prop() provisioningActor?: string;
+
   @Prop({
     required: true,
     unique: true,

@@ -1,3 +1,4 @@
+import { authenticateLocalProvisioning } from '../../../local-admin-development';
 import {
   CanActivate,
   ExecutionContext,
@@ -11,7 +12,10 @@ import { AccessTokenGuard } from './access-token.guard';
 @Injectable()
 export class AuthenticationGuard implements CanActivate {
   private static readonly defaultAuthType = AuthType.Bearer;
-  private readonly authTypeGuardMap: Record<AuthType, CanActivate | CanActivate[]>;
+  private readonly authTypeGuardMap: Record<
+    AuthType,
+    CanActivate | CanActivate[]
+  >;
 
   constructor(
     private readonly reflector: Reflector,
@@ -24,6 +28,8 @@ export class AuthenticationGuard implements CanActivate {
   }
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    if (authenticateLocalProvisioning(context.switchToHttp().getRequest()))
+      return true;
     const authTypes = this.reflector.getAllAndOverride<AuthType[]>(
       AUTH_TYPE_KEY,
       [context.getHandler(), context.getClass()],
