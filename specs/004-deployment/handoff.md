@@ -46,3 +46,13 @@ keys/CA/scoped roles; validated service and private TLS backhaul images; safe CI
 and package release; private service rollout; edge/DNS; ChatGPT linking and public
 three-tool/revocation/legacy acceptance. Compatibility-mode Mongo TLS preserves
 older consumers until their own TLS migration; auth requires verified TLS.
+
+## 2026-11-07 runtime audit repair
+
+The user reported auth deployment run 42405150604 failed. Its validate job stopped
+at npm audit --omit=dev --audit-level=high, before tests/build/promotion. Production
+remained on service-auth:f1edcbbaf373. The compatible lockfile refresh and narrow
+platform-express multer override are documented in ADR 0009. Clean runtime audit
+now has zero findings; all 80 OAuth/application/production/client tests, strict
+service/client builds and required lint checks passed locally on Node 22.23.3.
+Proceed with normal main validation/deployment; no package publication is required.

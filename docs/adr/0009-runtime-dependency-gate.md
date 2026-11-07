@@ -21,3 +21,22 @@ that future advisories cannot arise. Development-only dependency advisories rema
 separate maintenance work; no broad forced toolchain upgrade was made. CI/public
 OAuth/tool/revocation/restart checks verify functional compatibility before explicit
 promotion. See [actual launch evidence](../production-execution-2026-10-12.md).
+
+## 2026-11-07 dependency refresh
+
+Run [42405150604](https://github.com/Ngx-Workshop/service-auth/actions/runs/42405150604)
+stopped at the runtime audit before building or deploying. The lockfile contained
+newly reported vulnerabilities in body-parser, follow-redirects, multer and qs.
+Refresh compatible transitive resolutions to body-parser 2.4.0, follow-redirects
+1.16.2 and qs 6.17.1. Nest's platform-express pins multer 2.4.0, so narrowly override
+that dependency to the compatible patched 2.5.0 rather than changing framework major
+versions or bypassing the audit. Advisory references:
+[body-parser](https://github.com/advisories/GHSA-27r3-jxmh-p828),
+[follow-redirects](https://github.com/advisories/GHSA-mrwp-f3q8-3g9p),
+[multer](https://github.com/advisories/GHSA-q7qp-rjg7-q26m).
+
+Clean installation on Node 22.23.3 reports zero runtime vulnerabilities. All 80
+OAuth/application/production-storage/client tests pass with no skipped cases;
+service and client builds and the workflow's affected lint checks pass. Existing
+security gates stay enabled. No application contracts, client package version,
+production secrets or database schemas change.

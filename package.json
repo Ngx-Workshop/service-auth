@@ -103,5 +103,10 @@
     "moduleNameMapper": {
       "^ngx/ngx-auth-client(|/.*)$": "<rootDir>/libs/ngx-auth-client/src/$1"
     }
+  },
+  "overrides": {
+    "@nestjs/platform-express": {
+      "multer": "2.5.0"
+    }
   }
 }
