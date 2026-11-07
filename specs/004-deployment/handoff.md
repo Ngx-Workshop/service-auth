@@ -56,3 +56,12 @@ platform-express multer override are documented in ADR 0009. Clean runtime audit
 now has zero findings; all 80 OAuth/application/production/client tests, strict
 service/client builds and required lint checks passed locally on Node 22.23.3.
 Proceed with normal main validation/deployment; no package publication is required.
+
+Production follow-through: fix commit 2afa6a3f9bf85821177dee6401eb4e3fa2399995
+passed validation and deployment in
+https://github.com/Ngx-Workshop/service-auth/actions/runs/42405890442.
+Running image service-auth:2afa6a3f9bf8 has the exact revision label and is running.
+Public authorization-server metadata and JWKS return 200 with the canonical issuer.
+Public signing-key fingerprint matches the predeployment baseline, confirming the
+existing signing keys were preserved. No client package publication was requested
+or performed. Postdeployment evidence is kept local to avoid another docs-only rollout.
