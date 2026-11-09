@@ -18,3 +18,8 @@ deploy-source.tar
 specs
 spikes
 test
+
+# Transient Actions transfer files and server-only provider configuration
+candidate/
+**/social-credentials.json
+**/social.env

@@ -18,10 +18,11 @@ const key=fs.readFileSync('/etc/mongodb-keyfile','utf8').replace(/\s/g,'');
 assert(c.getDB('local').auth({user:'__system',pwd:key,mechanism:'SCRAM-SHA-256'}));
 const d=c.getDB('workshop-viewer');
 const pw=JSON.parse(fs.readFileSync('/etc/ngx-workshop/oauth/mongo-credentials.json','utf8'));
-const names=['oauth_state','oauth_forms','oauth_revoked'];
+const names=['oauth_state','oauth_forms','oauth_revoked','social_login_transactions'];
 const runtime=names.concat(['users']).map(collection=>({resource:{db:d.getName(),collection},actions:['find','insert','update','remove','listIndexes']}));
 runtime.push({resource:{db:d.getName(),collection:''},actions:['listCollections']});
 const provision=names.map(collection=>({resource:{db:d.getName(),collection},actions:['createCollection','createIndex','collMod','listIndexes']}));
+provision.push({resource:{db:d.getName(),collection:'users'},actions:['createIndex','listIndexes']});
 provision.push({resource:{db:d.getName(),collection:''},actions:['listCollections']});
 const canonical=xs=>JSON.stringify(xs.map(p=>({db:p.resource.db,collection:p.resource.collection,actions:[...p.actions].sort()})).sort((a,b)=>a.collection.localeCompare(b.collection)));
 for(const [role,privileges] of [['ngx_oauth_runtime',runtime],['ngx_oauth_provisioner',provision]]) {

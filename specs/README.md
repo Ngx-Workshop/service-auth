@@ -6,3 +6,4 @@
 | 002 OAuth implementation | Complete (local scope) | [Spec](002-oauth-implementation/spec.md) | [Plan](002-oauth-implementation/plan.md) | [Tasks](002-oauth-implementation/tasks.md) | [Handoff](002-oauth-implementation/handoff.md) |
 | 003 OAuth integration | Complete (local scope) | [Spec](003-oauth-integration/spec.md) | [Plan](003-oauth-integration/plan.md) | [Tasks](003-oauth-integration/tasks.md) | [Handoff](003-oauth-integration/handoff.md) |
 | 004 Deployment | Deployed/published; ChatGPT three-tool acceptance passed | [Spec](004-deployment/spec.md) | [Plan](004-deployment/plan.md) | [Tasks](004-deployment/tasks.md) | [Handoff](004-deployment/handoff.md) |
+| 005 Social website login | Implemented locally; production acceptance pending | [Spec](005-social-login/spec.md) | [Plan](005-social-login/plan.md) | [Tasks](005-social-login/tasks.md) | [Handoff](005-social-login/handoff.md) |

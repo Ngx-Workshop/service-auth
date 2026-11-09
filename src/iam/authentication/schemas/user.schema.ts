@@ -16,8 +16,12 @@ export class User {
   })
   email: string;
 
-  @Prop({ required: true })
-  password: string;
+  // Provider-only accounts have no password and cannot use password login.
+  @Prop()
+  password?: string;
+
+  @Prop({ type: [String], default: undefined })
+  externalIdentities?: string[];
 
   @Prop({
     immutable: true,
@@ -33,3 +37,7 @@ export class User {
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
+
+// Each provider subject belongs to exactly one local UUID. The array is omitted
+// on password accounts so this sparse multikey index ignores those accounts.
+UserSchema.index({ externalIdentities: 1 }, { unique: true, sparse: true });

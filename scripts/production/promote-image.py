@@ -20,6 +20,8 @@ old=json.loads(subprocess.check_output(['docker','inspect',name]))[0]
 previous=name+'-previous-'+old['Id'][:12]
 subprocess.run(['docker','stop',name],check=True);subprocess.run(['docker','rename',name,previous],check=True)
 cmd=['docker','run','-d','--name',name,'--restart','unless-stopped','--user','1000:1000','--read-only','--tmpfs','/tmp:size=16m,noexec,nosuid','--cap-drop','ALL','--security-opt','no-new-privileges','--network','ngx-net','--env-file','/etc/ngx-workshop/oauth/'+service+'/runtime.env']
+if service=='auth' and pathlib.Path('/etc/ngx-workshop/oauth/auth/social.env').is_file():
+ cmd+=['--env-file','/etc/ngx-workshop/oauth/auth/social.env']
 mounts=[('/etc/ngx-workshop/oauth/auth/config.json','/run/secrets/oauth.json'),('/etc/ngx-workshop/pki/ca.pem','/run/secrets/mongo-ca.pem')] if service=='auth' else [('/etc/ngx-workshop/oauth/gateway/introspection','/run/secrets/introspection')]
 for source,target in mounts:cmd+=['-v',source+':'+target+':ro']
 cmd+=[image+':'+revision[:12]]

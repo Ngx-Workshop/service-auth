@@ -18,6 +18,11 @@ const loadNative = require('./oauth/loader.cjs') as (url: string) => Promise<{
   loadConfig?: () => Promise<
     { issuer: string; runtime: { bind: string } } | undefined
   >;
+  installSocial?: (
+    app: unknown,
+    connection: Connection,
+    auth: AuthenticationService,
+  ) => Promise<void>;
   installOAuth?: (
     app: unknown,
     connection: Connection,
@@ -50,6 +55,14 @@ export async function createAuthApp() {
     app.use(cookieParser());
     app.useBodyParser('json');
     app.useBodyParser('urlencoded', { extended: true });
+    const social = await loadNative(
+      pathToFileURL(join(__dirname, 'oauth/social.mjs')).href,
+    );
+    await social.installSocial!(
+      app,
+      app.get<Connection>(getConnectionToken()),
+      app.get(AuthenticationService),
+    );
     return {
       app,
       host: localAdminMode()

@@ -40,6 +40,9 @@ jobs:
           npm ci
           npm audit --omit=dev --audit-level=high
           npm run test:oauth
+          npm test -- --runInBand
+          npm run test:social
+          python3 -m unittest discover -s test/production -p "test_*.py"
           npm run lint:oauth
           npx eslint libs/ngx-auth-client/src/oauth-introspection.ts src/app.module.ts
           npm run lint:oauth:spike
@@ -97,7 +100,14 @@ jobs:
           set -euo pipefail
           cd candidate
           sha256sum --check image.tar.sha256
-          cp ../scripts/production/promote-image.py .
+          cp ../scripts/production/promote-image.py ../scripts/production/install-social-credentials.py .
+      - name: Stage Google and GitHub server credentials
+        env:
+          SOCIAL_GOOGLE_CLIENT_ID: ${{ secrets.SOCIAL_GOOGLE_CLIENT_ID }}
+          SOCIAL_GOOGLE_CLIENT_SECRET: ${{ secrets.SOCIAL_GOOGLE_CLIENT_SECRET }}
+          SOCIAL_GITHUB_CLIENT_ID: ${{ secrets.SOCIAL_GITHUB_CLIENT_ID }}
+          SOCIAL_GITHUB_CLIENT_SECRET: ${{ secrets.SOCIAL_GITHUB_CLIENT_SECRET }}
+        run: python3 scripts/production/stage-social-credentials.py candidate/social-credentials.json
       - name: Transfer the validated image
         uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
         with:
@@ -106,7 +116,7 @@ jobs:
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-          source: candidate/image.tar,candidate/image.tar.sha256,candidate/promote-image.py
+          source: candidate/image.tar,candidate/image.tar.sha256,candidate/promote-image.py,candidate/install-social-credentials.py,candidate/social-credentials.json
           target: /opt/ngx-nestjs-services/ngx-auth-service/deployments/${{ github.sha }}
           strip_components: 1
           overwrite: true
@@ -123,8 +133,14 @@ jobs:
             set -eu
             umask 077
             cd /opt/ngx-nestjs-services/ngx-auth-service/deployments/${{ github.sha }}
+            trap 'rm -f social-credentials.json install-social-credentials.py' EXIT
+            chmod 600 social-credentials.json
+            python3 install-social-credentials.py social-credentials.json
             python3 promote-image.py auth "$PWD" '${{ github.sha }}'
             rm -f image.tar image.tar.sha256 promote-image.py
+      - name: Remove runner credential transfer file
+        if: always()
+        run: rm -f candidate/social-credentials.json
 
   publish:
     needs: validate

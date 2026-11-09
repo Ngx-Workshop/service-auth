@@ -42,7 +42,9 @@ export class AuthenticationService {
 
   private readonly logger = new Logger(AuthenticationService.name);
   private readonly metadataClient = axios.create({
-    baseURL: localAdminMode() ? 'http://127.0.0.1:3004' : process.env.USER_METADATA_URL,
+    baseURL: localAdminMode()
+      ? 'http://127.0.0.1:3004'
+      : process.env.USER_METADATA_URL,
     timeout: 3000,
   });
 
@@ -53,9 +55,9 @@ export class AuthenticationService {
         { uuid },
         { headers: { Authorization: `Bearer ${accessToken}` } },
       );
-    } catch (err) {
-      // Non-blocking on purpose
-      this.logger.warn(`Failed to upsert UserMetadata for ${uuid}`, err);
+    } catch {
+      // Keep bearer headers out of logs when the metadata service is unavailable.
+      this.logger.warn(`Failed to upsert UserMetadata for ${uuid}`);
     }
   }
 
@@ -118,6 +120,7 @@ export class AuthenticationService {
   ): Promise<{ accessToken: string; refreshToken: string }> {
     const user = await this.userModel.findOne({ email: userAuthDto.email });
     if (!user) throw new UnauthorizedException('User not found');
+    if (!user.password) throw new UnauthorizedException('Invalid credentials');
 
     const isPasswordValid = await this.hashService.compare(
       userAuthDto.password,
@@ -138,7 +141,7 @@ export class AuthenticationService {
       password,
       user?.password ?? this.oauthDummyHash,
     );
-    if (!user || !valid) return undefined;
+    if (!user?.password || !valid) return undefined;
     return String(user._id);
   }
 
@@ -147,6 +150,32 @@ export class AuthenticationService {
     return !!(await this.userModel
       .exists({ _id: new Types.ObjectId(id) })
       .maxTimeMS(3000));
+  }
+
+  // Called only after the server has validated the provider response.
+  async signInExternal(provider: string, subject: string, email: string) {
+    const identity = `${provider}:${subject}`;
+    let user = await this.userModel.findOne({ externalIdentities: identity });
+    if (!user) {
+      // Never merge by email: an existing password or different provider account
+      // must prove ownership in a future explicit linking flow.
+      if (await this.userModel.exists({ email }))
+        throw new ConflictException('Account linking required');
+      try {
+        user = await this.userModel.create({
+          email,
+          externalIdentities: [identity],
+        });
+      } catch (error) {
+        if (error.code !== MongoErrorCodes.DuplicateKey) throw error;
+        user = await this.userModel.findOne({ externalIdentities: identity });
+        if (!user) throw new ConflictException('Account linking required');
+      }
+    }
+    const tokens = await this.generateTokens(user);
+    // Retry the idempotent metadata upsert on every social login after outages.
+    await this.ensureUserMetadata(user, tokens.accessToken);
+    return tokens;
   }
 
   async refreshTokens(refreshTokenDto: RefreshTokenDto) {

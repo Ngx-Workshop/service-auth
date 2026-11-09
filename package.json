@@ -25,7 +25,8 @@
     "lint:oauth": "eslint --config test/oauth/eslint.config.mjs src/oauth/*.mjs test/oauth/*.mjs scripts/oauth-local-config.mjs scripts/oauth-mongo-provision.mjs && eslint src/bootstrap.ts src/main.ts",
     "oauth:local:config": "node scripts/oauth-local-config.mjs",
     "oauth:mongo:provision": "node scripts/oauth-mongo-provision.mjs",
-    "start:admin-local": "AUTH_ADMIN_LOCAL_DEV=true NODE_ENV=development OAUTH_ENABLED=false RUNTIME_PROFILE=local MONGODB_URI=mongodb://127.0.0.1:27017/auth_users_local PORT=3005 JWT_SECRET=isolated-local-provisioning-development-only JWT_ISSUER=http://127.0.0.1:3005 JWT_AUDIENCE=ngx-workshop-local nest start --watch"
+    "start:admin-local": "AUTH_ADMIN_LOCAL_DEV=true NODE_ENV=development OAUTH_ENABLED=false RUNTIME_PROFILE=local MONGODB_URI=mongodb://127.0.0.1:27017/auth_users_local PORT=3005 JWT_SECRET=isolated-local-provisioning-development-only JWT_ISSUER=http://127.0.0.1:3005 JWT_AUDIENCE=ngx-workshop-local nest start --watch",
+    "test:social": "node --test test/social/*.test.mjs"
   },
   "dependencies": {
     "@nestjs/axios": "^4.0.1",
@@ -43,6 +44,7 @@
     "class-validator": "^0.14.1",
     "cookie-parser": "^1.4.7",
     "ipaddr.js": "2.2.0",
+    "jose": "6.2.12",
     "mongoose": "^8.13.2",
     "oidc-provider": "9.12.2",
     "passport": "^0.7.0",
