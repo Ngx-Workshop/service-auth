@@ -133,5 +133,9 @@ Release order:
    allowed redirects and assigned-role retention. Existing email conflicts remain
    blocked pending an explicit provider-linking feature.
 
-This checkout contains the prepared release changes; it has not been pushed or
-rolled out, and no production migration or real-provider acceptance has been run.
+Google/GitHub production rollout completed on 2026-11-09. The database migration
+and all three delivery workflows succeeded. Public provider discovery, cancellation,
+redirect restrictions and browser entry into both provider login pages were verified.
+A complete provider-account sign-in and new/returning profile acceptance still need
+a real user session; no personal provider credentials were entered for deployment.
+See specs/005-social-login/handoff.md for exact release revisions and evidence.

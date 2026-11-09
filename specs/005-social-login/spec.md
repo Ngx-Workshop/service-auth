@@ -1,6 +1,7 @@
 # Social sign-up and sign-in
 
-Status: Implemented locally; provider registration and production acceptance pending.
+Status: Google/GitHub deployed 2026-11-09; Apple deferred by the user.
+Complete real-account acceptance remains pending.
 
 The authentication page at https://auth.ngx-workshop.io must let users create an
 account and return to it through Google, Apple, or GitHub.

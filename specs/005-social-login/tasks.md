@@ -6,11 +6,13 @@
 - [x] T004 Add shared provider buttons to login/sign-up and preserve destination.
 - [x] T005 Add ingress logging/body/rate restrictions and configuration guide.
 - [x] T006 Verify provider protocol, browser binding, replay, account and UI tests.
-- [ ] T007 Register each provider, provision credentials/indexes, deploy and verify
-  real provider consent, returning sign-in, cross-subdomain cookies and admin visibility.
+- [x] T007 Register Google/GitHub, provision their credentials/indexes and deploy.
+  Apple registration and activation are deferred by the user.
 
 - [x] T008 Wire organization Google/GitHub secrets through private server config and
   force Apple disabled; verify local credential transfer/install behavior.
 - [x] T009 Prepare additive database-host migration and production index validation.
-- [ ] T010 Execute production migration and release Google/GitHub; confirm discovery
-  and live provider acceptance. Apple rollout is explicitly deferred by the user.
+- [x] T010 Execute production migration and release Google/GitHub; confirm discovery,
+  public callback controls and native browser entry into both provider login pages.
+- [ ] T011 Complete real-account consent, new/returning sign-in, cross-subdomain
+  cookies, metadata visibility and role acceptance with the user’s provider session.
