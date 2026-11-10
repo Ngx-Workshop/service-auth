@@ -1,4 +1,4 @@
-# Google/GitHub production release — 2026-11-09
+# Google/GitHub production release — 2026-11-09 and 2026-11-10
 
 Status: Deployed; complete real-account sign-in acceptance pending. Apple is disabled
 and deferred until the associated primary Apple app registration exists.
@@ -7,9 +7,9 @@ and deferred until the associated primary Apple app registration exists.
 
 | Component | Running source revision | Successful workflow |
 | --- | --- | --- |
-| service-auth | 585a21da13902ff74297cc4e58f1096f2c179e07 | [42723066871](https://github.com/Ngx-Workshop/service-auth/actions/runs/42723066871) |
+| service-auth | 34c5ce4d94eb18d8daef7b081fffb566ff376034 | [42921728315](https://github.com/Ngx-Workshop/service-auth/actions/runs/42921728315) |
 | nginx-ngx-workshop.io | f722498233e2637168f25efe8c16821d918c87bb | [42723145170](https://github.com/Ngx-Workshop/nginx-ngx-workshop.io/actions/runs/42723145170) |
-| app-authentication | 9c5076182bb1642416a2fe19913c322da1121d5b | [42723468962](https://github.com/Ngx-Workshop/app-authentication/actions/runs/42723468962) |
+| app-authentication | 49e5aa3b818dc5c9a184bf68712082c43a7df796 | [42921465441](https://github.com/Ngx-Workshop/app-authentication/actions/runs/42921465441) |
 
 Metadata/admin runtime contracts remain unchanged. Compatibility documentation was
 pushed as service-user-metadata 3d93d49 and admin user-management 5a3d88d. Those
@@ -38,7 +38,7 @@ values were printed, committed, put in uploaded image artifacts or delivered to 
 
 ## Verification
 
-- Local auth build, 80 OAuth/Mongo integration tests, 12 account tests, 8 social
+- Local auth build, 81 OAuth/Mongo integration tests, 12 account tests, 9 social
   protocol/schema tests and 4 credential transfer/install tests passed; OAuth lint,
   workflow YAML parsing and production dependency audit passed (zero findings).
 - Auth UI production build and 2 focused ChromeHeadless tests passed. The existing
@@ -57,6 +57,13 @@ values were printed, committed, put in uploaded image artifacts or delivered to 
   browser clicks reach Google's sign-in page for ngx-workshop.io and GitHub's sign-in
   page branded NGX Workshop. No provider passwords, consent or account creation were
   submitted by the deployment agent.
+
+On 2026-11-10, a verified Google email matching an existing account reached
+link_required. The follow-up release added password confirmation for existing
+Google/GitHub email matches. The tests verify incorrect passwords and replay
+cannot link, and a successful link preserves UUID, password and role. The production
+route rejected an expired confirmation and a cross-origin POST. The release also
+updated Mongoose to 8.24.7 to clear the production dependency audit.
 
 ## Remaining acceptance and behavior
 
