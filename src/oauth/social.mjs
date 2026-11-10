@@ -1,3 +1,4 @@
+import { socialLink } from './social-link.mjs';
 import { validateSocialSchema } from './social-schema.mjs';
 import { createHash, randomBytes } from 'node:crypto';
 import { createRemoteJWKSet, jwtVerify, importPKCS8, SignJWT } from 'jose';
@@ -135,6 +136,17 @@ export async function providerIdentity(name, p, code, transaction, deps = {}) {
   return { subject: payload.sub, email: payload.email.toLowerCase().trim() };
 }
 
+function finish(res, accessToken, redirect) {
+  res.cookie('accessToken', accessToken, {
+    domain: process.env.DOMAIN || 'ngx-workshop.io',
+    path: '/',
+    secure: true,
+    httpOnly: true,
+    sameSite: 'lax',
+  });
+  return res.redirect(303, redirect);
+}
+
 export async function installSocial(app, connection, auth, deps = {}) {
   const configured = deps.config ?? loadSocialConfig();
   let transactions;
@@ -154,12 +166,28 @@ export async function installSocial(app, connection, auth, deps = {}) {
     sameSite: 'none',
     path: '/',
   };
+  const link = socialLink({
+    transactions,
+    auth,
+    configured,
+    origin,
+    random,
+    hash,
+    finish,
+  });
   // Public paths are /api/auth/social/*; the existing ingress strips /api/auth.
   app.use('/social', async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     res.setHeader('Referrer-Policy', 'no-referrer');
     if (req.path === '/providers' && req.method === 'GET')
       return res.json(Object.keys(configured));
+    if (req.path === '/link') {
+      try {
+        return await link.handle(req, res);
+      } catch {
+        return res.redirect(303, `${origin}/login?social_error=failed`);
+      }
+    }
     const match = /^\/(google|apple|github)\/(start|callback)$/.exec(req.path);
     const name = match?.[1],
       action = match?.[2],
@@ -237,19 +265,21 @@ export async function installSocial(app, connection, auth, deps = {}) {
         !identity.email.includes('@')
       )
         throw new Error('Invalid email');
-      const { accessToken } = await auth.signInExternal(
-        name,
-        identity.subject,
-        identity.email,
-      );
-      res.cookie('accessToken', accessToken, {
-        domain: process.env.DOMAIN || 'ngx-workshop.io',
-        path: '/',
-        secure: true,
-        httpOnly: true,
-        sameSite: 'lax',
-      });
-      return res.redirect(303, transaction.redirect);
+      try {
+        const { accessToken } = await auth.signInExternal(
+          name,
+          identity.subject,
+          identity.email,
+        );
+        return finish(res, accessToken, transaction.redirect);
+      } catch (error) {
+        if (
+          error?.getStatus?.() === 409 &&
+          (await link.start(res, name, identity, transaction.redirect))
+        )
+          return;
+        throw error;
+      }
     } catch (error) {
       const reason = error?.getStatus?.() === 409 ? 'link_required' : 'failed';
       return res.redirect(303, `${origin}/login?social_error=${reason}`);

@@ -26,6 +26,9 @@ import { createAdapter, digest } from '../../src/oauth/mongo-adapter.mjs';
 const require = createRequire(import.meta.url);
 const { Logger } = require('@nestjs/common');
 Logger.overrideLogger(false);
+const {
+  AuthenticationService,
+} = require('../../dist/src/iam/authentication/authentication.service.js');
 const { createAuthApp } = require('../../dist/src/bootstrap.js');
 let mongo, app, directory, config, account, metadataServer;
 let metadataCalls = 0;
@@ -896,4 +899,53 @@ test('OAuth disabled retains legacy service without an OAuth endpoint', async ()
     ).status,
     200,
   );
+});
+
+test('provider linking proves the existing password and preserves UUID and role', async () => {
+  const auth = app.get(AuthenticationService);
+  const targetEmail = 'link-account@example.test';
+  const passwordHash = await bcrypt.hash(password, 10);
+  const users = mongo.db.collection('users');
+  const { insertedId } = await users.insertOne({
+    email: targetEmail,
+    password: passwordHash,
+    role: 'publisher',
+  });
+  const id = String(insertedId);
+  assert.equal(await auth.findPasswordLinkAccount(targetEmail), id);
+  const link = (subject, proof = password) =>
+    auth.linkExternalToPasswordAccount(
+      id,
+      'google',
+      subject,
+      targetEmail,
+      proof,
+    );
+  await assert.rejects(link('subject-a', 'wrong-password'), /Could not verify/);
+  assert.equal(
+    (await users.findOne({ _id: insertedId })).externalIdentities,
+    undefined,
+  );
+  const results = await Promise.allSettled([
+    link('subject-a'),
+    link('subject-b'),
+  ]);
+  assert.equal(
+    results.filter((result) => result.status === 'fulfilled').length,
+    1,
+  );
+  const stored = await users.findOne({ _id: insertedId });
+  assert.equal(stored.externalIdentities.length, 1);
+  assert.equal(stored.password, passwordHash);
+  const subject = stored.externalIdentities[0].slice('google:'.length);
+  const { accessToken } = await auth.signInExternal(
+    'google',
+    subject,
+    targetEmail,
+  );
+  const payload = JSON.parse(
+    Buffer.from(accessToken.split('.')[1], 'base64url'),
+  );
+  assert.equal(payload.sub, id);
+  assert.equal(payload.role, 'publisher');
 });

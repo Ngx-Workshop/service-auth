@@ -158,7 +158,7 @@ export class AuthenticationService {
     let user = await this.userModel.findOne({ externalIdentities: identity });
     if (!user) {
       // Never merge by email: an existing password or different provider account
-      // must prove ownership in a future explicit linking flow.
+      // must prove ownership through explicit linking.
       if (await this.userModel.exists({ email }))
         throw new ConflictException('Account linking required');
       try {
@@ -175,6 +175,50 @@ export class AuthenticationService {
     const tokens = await this.generateTokens(user);
     // Retry the idempotent metadata upsert on every social login after outages.
     await this.ensureUserMetadata(user, tokens.accessToken);
+    return tokens;
+  }
+
+  async findPasswordLinkAccount(email: string) {
+    const user = await this.userModel.findOne({ email }).maxTimeMS(3000).exec();
+    return user?.password ? String(user._id) : undefined;
+  }
+
+  async linkExternalToPasswordAccount(
+    accountId: string,
+    provider: 'google' | 'github',
+    subject: string,
+    email: string,
+    password: string,
+  ) {
+    const user = await this.userModel
+      .findOne({ _id: accountId, email })
+      .maxTimeMS(3000)
+      .exec();
+    if (
+      !user?.password ||
+      !(await this.hashService.compare(password, user.password))
+    )
+      throw new UnauthorizedException('Could not verify existing account');
+
+    const identity = `${provider}:${subject}`;
+    // Require the verified password and account details to still be current.
+    // An existing link for this provider can only be confirmed, never replaced.
+    const linked = await this.userModel.findOneAndUpdate(
+      {
+        _id: user._id,
+        email,
+        password: user.password,
+        $or: [
+          { externalIdentities: identity },
+          { externalIdentities: { $not: new RegExp(`^${provider}:`) } },
+        ],
+      },
+      { $addToSet: { externalIdentities: identity } },
+      { new: true, maxTimeMS: 3000 },
+    );
+    if (!linked) throw new ConflictException('Account cannot be linked');
+    const tokens = await this.generateTokens(linked);
+    await this.ensureUserMetadata(linked, tokens.accessToken);
     return tokens;
   }
 

@@ -15,8 +15,10 @@ account and return to it through Google, Apple, or GitHub.
   Identify accounts by provider subject, never by mutable usernames or matching emails.
 - FR-004: Preserve metadata and admin role management by retaining local UUIDs and
   using the existing JWT and metadata upsert. Default new accounts to regular.
-- FR-005: Fail closed on existing email conflicts. Explicit account linking is a
-  follow-up, not automatic account merging. Passwordless accounts reject password login.
+- FR-005: Google/GitHub can connect to an existing password account only after a
+  verified matching email and one-time password confirmation in the same browser.
+  Keep the existing UUID, role and password. Reject provider-only email conflicts
+  and prevent replacing an existing link for the same provider.
 - FR-006: Redirect only to the exact auth, beta, and admin HTTPS origins. Never put
   session/provider tokens in URLs or retain provider access/refresh tokens.
 
@@ -28,5 +30,5 @@ real Mongo indexes, deployed ingress and cross-subdomain cookies require product
 acceptance with registered credentials.
 
 Scope: the Angular website's existing cookie login. The catalog OAuth engine's
-separate server-rendered login/consent, provider linking/unlinking, connected-provider
+separate server-rendered login/consent, provider unlinking, connected-provider
 admin UI, and provider account revocation/deletion are not changed by this feature.

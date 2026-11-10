@@ -62,8 +62,8 @@ values were printed, committed, put in uploaded image artifacts or delivered to 
 
 Use a real provider session to complete consent, new/returning account sign-in,
 cross-subdomain cookie use, profile visibility and assigned-role retention. Existing
-email accounts deliberately require their original sign-in method until a separate
-explicit linking/unlinking feature exists. Deleting metadata still leaves the auth
+password accounts can connect Google or GitHub through a one-time password
+confirmation. Provider-only accounts continue to use their original provider. Deleting metadata still leaves the auth
 identity. The separate catalog OAuth server-rendered password interaction is unchanged.
 
 Previous auth containers/images remain available through the existing promotion

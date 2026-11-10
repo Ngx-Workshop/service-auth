@@ -165,23 +165,24 @@ test('GitHub uses stable numeric ID and a primary verified private email', async
   );
 });
 
-async function fixture(name = 'google', conflict = false) {
+async function fixture(name = 'google', conflict = false, linkable = false) {
   const rows = new Map(),
     calls = [];
+  const findOne = async ({ _id, expiresAt, ...fields }) => {
+    const row = rows.get(_id);
+    return row &&
+      row.expiresAt > expiresAt.$gt &&
+      Object.entries(fields).every(([key, value]) => row[key] === value)
+      ? row
+      : null;
+  };
   const collection = {
     createIndex: async () => {},
     insertOne: async (row) => rows.set(row._id, row),
+    findOne,
     findOneAndDelete: async (filter) => {
-      const row = rows.get(filter._id);
-      if (
-        !row ||
-        row.name !== filter.name ||
-        row.browser !== filter.browser ||
-        row.expiresAt <= filter.expiresAt.$gt
-      )
-        return null;
-      rows.delete(row._id);
-      return row;
+      const row = await findOne(filter);
+      return row && rows.delete(row._id) ? row : null;
     },
   };
   const app = express();
@@ -191,6 +192,13 @@ async function fixture(name = 'google', conflict = false) {
     app,
     { db: { collection: () => collection } },
     {
+      findPasswordLinkAccount: async () =>
+        linkable ? 'existing-id' : undefined,
+      linkExternalToPasswordAccount: async (...args) => {
+        calls.push(args);
+        if (args[4] !== 'ExistingPassword1!') throw Error('Incorrect password');
+        return { accessToken: 'linked-session' };
+      },
       signInExternal: async (...args) => {
         calls.push(args);
         if (conflict) throw { getStatus: () => 409 };
@@ -307,4 +315,71 @@ test('production index validation does not need schema mutation privileges', asy
     ),
     /provision separately/,
   );
+});
+
+test('verified email collision requires browser-bound password confirmation once', async () => {
+  for (const password of ['IncorrectPassword1!', 'ExistingPassword1!']) {
+    const f = await fixture('google', true, true);
+    const callback = await f.client
+      .get(`/social/google/callback?state=${f.state}&code=code`)
+      .set('Cookie', f.cookie)
+      .expect(303);
+    assert.equal(callback.headers.location, '/api/auth/social/link');
+    const cookies = callback.headers['set-cookie'];
+    assert.ok(!cookies.some((value) => value.startsWith('accessToken=')));
+    const binding = cookies.find((value) =>
+      value.startsWith('__Host-social_link='),
+    );
+    assert.match(binding, /HttpOnly; Secure; SameSite=Lax/);
+    const cookie = binding.split(';')[0];
+    await f.client.get('/social/link').expect(410);
+    const page = await f.client
+      .get('/social/link')
+      .set('Cookie', cookie)
+      .expect(200);
+    assert.match(page.text, /Connect Google and sign in/);
+    assert.match(
+      page.headers['content-security-policy'],
+      /form-action 'self' https:\/\/admin\.ngx-workshop\.io/,
+    );
+    assert.equal(page.headers['referrer-policy'], 'same-origin');
+    const csrf = page.text.match(/name="csrf" value="([^"]+)"/)[1];
+    const confirm = (origin, token = csrf) =>
+      f.client
+        .post('/social/link')
+        .set('Cookie', cookie)
+        .set('Origin', origin)
+        .type('form')
+        .send({ csrf: token, password });
+    await confirm('https://beta.ngx-workshop.io').expect(403);
+    await confirm('https://auth.ngx-workshop.io', 'wrong-token').expect(410);
+    assert.equal(f.calls.length, 1);
+    const result = await confirm('https://auth.ngx-workshop.io').expect(
+      password === 'ExistingPassword1!' ? 303 : 401,
+    );
+    assert.deepEqual(f.calls[1], [
+      'existing-id',
+      'google',
+      'sub',
+      'person@example.com',
+      password,
+    ]);
+    if (result.status === 303) {
+      assert.equal(
+        result.headers.location,
+        'https://admin.ngx-workshop.io/users',
+      );
+      assert.match(
+        result.headers['set-cookie'].join(';'),
+        /accessToken=linked-session/,
+      );
+    } else {
+      assert.doesNotMatch(
+        result.headers['set-cookie'].join(';'),
+        /accessToken=/,
+      );
+    }
+    await confirm('https://auth.ngx-workshop.io').expect(410);
+    assert.equal(f.calls.length, 2);
+  }
 });

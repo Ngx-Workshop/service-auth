@@ -65,9 +65,11 @@ No provider access/refresh token is stored. Transaction state lives for ten minu
 starting again with the same provider in the same browser replaces its binding.
 
 Account creation/upsert may succeed before a metadata outage. Each later provider
-login retries metadata upsert using the same UUID. Existing email conflicts report
-link_required and issue no cookie. Users must use their original sign-in method;
-explicit linking/unlinking requires a separate authenticated feature. Deleting a
+login retries metadata upsert using the same UUID. For Google or GitHub, a verified email matching an existing password account opens
+a password confirmation page. The browser-bound confirmation expires after five
+minutes and can be submitted once. Successful confirmation connects the provider
+to the existing account and signs in with its current UUID and role. Conflicts with
+a provider-only account still require the original provider. Deleting a
 metadata record in admin continues to leave the auth identity intact.
 
 The metadata service and admin remote require no new runtime DTOs or dependencies.
@@ -130,8 +132,8 @@ Release order:
 4. Release nginx-ngx-workshop.io's social route and app-authentication's buttons.
 5. GET https://auth.ngx-workshop.io/api/auth/social/providers must return
    ["google","github"]. Test new and returning accounts, cancellation, metadata,
-   allowed redirects and assigned-role retention. Existing email conflicts remain
-   blocked pending an explicit provider-linking feature.
+   allowed redirects and assigned-role retention. Verify password confirmation for
+   a matching existing account and provider-only conflict handling.
 
 Google/GitHub production rollout completed on 2026-11-09. The database migration
 and all three delivery workflows succeeded. Public provider discovery, cancellation,
