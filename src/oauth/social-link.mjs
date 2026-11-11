@@ -80,10 +80,10 @@ export function socialLink({
           res,
           'Connect ' + name,
           `<p>Enter your NGX Workshop password to connect ${name} to your existing account.</p>
-          <form method="post" action="${path}">
+          <form class="auth-form" method="post" action="${path}">
             <input type="hidden" name="csrf" value="${escape(transaction.csrf)}">
-            <p><label>Email <input autocomplete="username" value="${escape(transaction.email)}" readonly></label></p>
-            <p><label>NGX Workshop password <input name="password" type="password" autocomplete="current-password" maxlength="1024" required></label></p>
+            <label>Email <input type="email" autocomplete="username" value="${escape(transaction.email)}" readonly></label>
+            <label>NGX Workshop password <input name="password" type="password" autocomplete="current-password" maxlength="1024" required></label>
             <button type="submit">Connect ${name} and sign in</button>
           </form><p><a href="/login">Cancel</a></p>`,
           new URL(transaction.redirect).origin,
@@ -123,7 +123,7 @@ function page(res, title, content, destination = '') {
   // Chrome applies form-action to the redirect after a native form POST.
   res.setHeader(
     'Content-Security-Policy',
-    `default-src 'none'; form-action 'self' ${destination}; frame-ancestors 'none'; base-uri 'none'`,
+    `default-src 'none'; style-src 'self'; form-action 'self' ${destination}; frame-ancestors 'none'; base-uri 'none'`,
   );
   // Same-origin keeps a native form POST's Origin available to verify.
   res.setHeader('Referrer-Policy', 'same-origin');
@@ -131,6 +131,6 @@ function page(res, title, content, destination = '') {
   return res
     .type('html')
     .send(
-      `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(title)} | NGX Workshop</title><main><h1>${escape(title)}</h1>${content}</main></html>`,
+      `<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escape(title)} | NGX Workshop</title><link rel="stylesheet" href="/auth-theme.css"><body><main class="auth-shell"><section class="auth-shell__card auth-link-panel"><header><p class="auth-link-panel__brand">NGX Workshop</p><h1>${escape(title)}</h1></header>${content}</section></main></body></html>`,
     );
 }

@@ -338,6 +338,7 @@ test('verified email collision requires browser-bound password confirmation once
       .set('Cookie', cookie)
       .expect(200);
     assert.match(page.text, /Connect Google and sign in/);
+    assert.match(page.text, /<link rel="stylesheet" href="\/auth-theme\.css">/);
     assert.match(
       page.headers['content-security-policy'],
       /form-action 'self' https:\/\/admin\.ngx-workshop\.io/,
