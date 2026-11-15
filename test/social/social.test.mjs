@@ -49,6 +49,7 @@ test('OIDC validates signature, issuer, audience, expiry, nonce and verified ema
     email: 'A@Example.com',
     email_verified: true,
     nonce: 'nonce',
+    picture: 'https://lh3.googleusercontent.com/profile',
   };
   for (const [overrides, issuer, audience, expiry, ok] of [
     [{}, p.issuer, p.clientId, '5m', true],
@@ -78,6 +79,7 @@ test('OIDC validates signature, issuer, audience, expiry, nonce and verified ema
       assert.deepEqual(await result, {
         subject: 'stable-sub',
         email: 'a@example.com',
+        avatarUrl: claims.picture,
       });
     else await assert.rejects(result);
   }
@@ -138,7 +140,11 @@ test('GitHub uses stable numeric ID and a primary verified private email', async
       ? { access_token: 'secret' }
       : url.endsWith('/emails')
         ? [{ email: 'private@example.com', primary: true, verified: true }]
-        : { id: 123, login: 'mutable-name' };
+        : {
+            id: 123,
+            login: 'mutable-name',
+            avatar_url: 'https://avatars.githubusercontent.com/u/123?v=4',
+          };
   assert.deepEqual(
     await providerIdentity(
       'github',
@@ -147,7 +153,11 @@ test('GitHub uses stable numeric ID and a primary verified private email', async
       {},
       { json: request },
     ),
-    { subject: '123', email: 'private@example.com' },
+    {
+      subject: '123',
+      email: 'private@example.com',
+      avatarUrl: 'https://avatars.githubusercontent.com/u/123?v=4',
+    },
   );
   await assert.rejects(
     providerIdentity(
@@ -165,7 +175,12 @@ test('GitHub uses stable numeric ID and a primary verified private email', async
   );
 });
 
-async function fixture(name = 'google', conflict = false, linkable = false) {
+async function fixture(
+  name = 'google',
+  conflict = false,
+  linkable = false,
+  avatarUrl,
+) {
   const rows = new Map(),
     calls = [];
   const findOne = async ({ _id, expiresAt, ...fields }) => {
@@ -214,7 +229,11 @@ async function fixture(name = 'google', conflict = false, linkable = false) {
           scope: 'openid email',
         },
       },
-      identity: async () => ({ subject: 'sub', email: 'person@example.com' }),
+      identity: async () => ({
+        subject: 'sub',
+        email: 'person@example.com',
+        avatarUrl,
+      }),
     },
   );
   const client = supertest(app);
@@ -319,7 +338,8 @@ test('production index validation does not need schema mutation privileges', asy
 
 test('verified email collision requires browser-bound password confirmation once', async () => {
   for (const password of ['IncorrectPassword1!', 'ExistingPassword1!']) {
-    const f = await fixture('google', true, true);
+    const photo = 'https://lh3.googleusercontent.com/profile';
+    const f = await fixture('google', true, true, photo);
     const callback = await f.client
       .get(`/social/google/callback?state=${f.state}&code=code`)
       .set('Cookie', f.cookie)
@@ -364,6 +384,7 @@ test('verified email collision requires browser-bound password confirmation once
       'sub',
       'person@example.com',
       password,
+      photo,
     ]);
     if (result.status === 303) {
       assert.equal(

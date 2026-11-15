@@ -4,6 +4,7 @@ import {
   Inject,
   Injectable,
   Logger,
+  NotFoundException,
   UnauthorizedException,
 } from '@nestjs/common';
 import { ConfigType } from '@nestjs/config';
@@ -21,6 +22,9 @@ import { RoleDto } from './dto/role.dto';
 import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { UserAuthDto } from './dto/user-auth.dto';
 import { User, UserDocument } from './schemas/user.schema';
+
+const signInProviders = ['google', 'github', 'apple'] as const;
+type SignInProvider = (typeof signInProviders)[number];
 
 @Injectable()
 export class AuthenticationService {
@@ -152,8 +156,37 @@ export class AuthenticationService {
       .maxTimeMS(3000));
   }
 
+  async getSignInMethods(accountId: string) {
+    if (!Types.ObjectId.isValid(accountId)) throw new NotFoundException();
+    const user = await this.userModel
+      .findById(accountId)
+      .select('password externalIdentities externalAvatars')
+      .maxTimeMS(3000)
+      .exec();
+    if (!user) throw new NotFoundException();
+
+    return {
+      hasPassword: Boolean(user.password),
+      providers: signInProviders
+        .filter((provider) =>
+          user.externalIdentities?.some((identity) =>
+            identity.startsWith(provider + ':'),
+          ),
+        )
+        .map((provider) => ({
+          provider,
+          avatarUrl: user.externalAvatars?.get(provider),
+        })),
+    };
+  }
+
   // Called only after the server has validated the provider response.
-  async signInExternal(provider: string, subject: string, email: string) {
+  async signInExternal(
+    provider: SignInProvider,
+    subject: string,
+    email: string,
+    avatarUrl?: string,
+  ) {
     const identity = `${provider}:${subject}`;
     let user = await this.userModel.findOne({ externalIdentities: identity });
     if (!user) {
@@ -165,12 +198,19 @@ export class AuthenticationService {
         user = await this.userModel.create({
           email,
           externalIdentities: [identity],
+          ...(avatarUrl ? { externalAvatars: { [provider]: avatarUrl } } : {}),
         });
       } catch (error) {
         if (error.code !== MongoErrorCodes.DuplicateKey) throw error;
         user = await this.userModel.findOne({ externalIdentities: identity });
         if (!user) throw new ConflictException('Account linking required');
       }
+    }
+    if (avatarUrl && user.externalAvatars?.get(provider) !== avatarUrl) {
+      await this.userModel.updateOne(
+        { _id: user._id, externalIdentities: identity },
+        { $set: { ['externalAvatars.' + provider]: avatarUrl } },
+      );
     }
     const tokens = await this.generateTokens(user);
     // Retry the idempotent metadata upsert on every social login after outages.
@@ -189,6 +229,7 @@ export class AuthenticationService {
     subject: string,
     email: string,
     password: string,
+    avatarUrl?: string,
   ) {
     const user = await this.userModel
       .findOne({ _id: accountId, email })
@@ -213,7 +254,12 @@ export class AuthenticationService {
           { externalIdentities: { $not: new RegExp(`^${provider}:`) } },
         ],
       },
-      { $addToSet: { externalIdentities: identity } },
+      {
+        $addToSet: { externalIdentities: identity },
+        ...(avatarUrl
+          ? { $set: { ['externalAvatars.' + provider]: avatarUrl } }
+          : {}),
+      },
       { new: true, maxTimeMS: 3000 },
     );
     if (!linked) throw new ConflictException('Account cannot be linked');

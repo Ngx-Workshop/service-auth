@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpCode,
   HttpStatus,
   Logger,
@@ -81,6 +82,13 @@ export class AuthenticationController {
   @HttpCode(HttpStatus.OK)
   isLoggedIn(@ActiveUser() user?: IActiveUserData): boolean {
     return !!user;
+  }
+
+  @Get('sign-in-methods')
+  @Roles(Role.Admin, Role.Regular, Role.Publisher)
+  @Header('Cache-Control', 'private, no-store')
+  getSignInMethods(@ActiveUser() user: IActiveUserData) {
+    return this.authService.getSignInMethods(user.sub);
   }
 
   @Get('user-metadata')

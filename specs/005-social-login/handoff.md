@@ -76,3 +76,18 @@ identity. The separate catalog OAuth server-rendered password interaction is unc
 Previous auth containers/images remain available through the existing promotion
 rollback process. Preserve the additive indexes and identities on rollback. Disabling
 provider IDs hides the corresponding buttons; do not reset production signing keys.
+
+## Settings integration
+
+Settings consumes authenticated GET /api/auth/sign-in-methods. The session
+subject determines the account. The response exposes a password capability
+flag and linked provider names with optional HTTPS avatar URLs. Google requests
+the profile scope and reads the optional picture claim from the validated ID
+token. GitHub reuses the authenticated user's avatar_url. The server stores the
+photo separately from the workshop profile and refreshes it after a successful
+provider sign-in or password-confirmed link. The existing auth proxy covers the
+new path. Existing connections gain photos on their next provider sign-in.
+
+Auth build and all 14 Jest tests passed. Six provider tests passed. The three
+Supertest cases that require listening on a local port were blocked by the
+workspace sandbox. Deployment and live provider sign-in remain pending.

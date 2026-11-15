@@ -4,7 +4,13 @@ import { UserSchema } from './schemas/user.schema';
 import { Role } from '../enums/role.enum';
 
 describe('Provider accounts', () => {
-  const model = { findOne: jest.fn(), exists: jest.fn(), create: jest.fn() };
+  const model = {
+    findOne: jest.fn(),
+    exists: jest.fn(),
+    create: jest.fn(),
+    findById: jest.fn(),
+    updateOne: jest.fn(),
+  };
   const hash = { hash: jest.fn(), compare: jest.fn() };
   const jwt = { signAsync: jest.fn() };
   let service: AuthenticationService;
@@ -68,6 +74,40 @@ describe('Provider accounts', () => {
     await expect(
       service.signInExternal('github', 'other', account.email),
     ).rejects.toThrow('Account linking required');
+  });
+  it('updates only the photo for the authenticated provider identity', async () => {
+    const photo = 'https://avatars.githubusercontent.com/u/123?v=4';
+    model.findOne.mockResolvedValue(account);
+    await service.signInExternal('github', '123', account.email, photo);
+    expect(model.updateOne).toHaveBeenCalledWith(
+      { _id: account._id, externalIdentities: 'github:123' },
+      { $set: { 'externalAvatars.github': photo } },
+    );
+  });
+  it('returns only linked providers, their photos and password capability', async () => {
+    const photo = 'https://lh3.googleusercontent.com/photo';
+    const query = { select: jest.fn(), maxTimeMS: jest.fn(), exec: jest.fn() };
+    query.select.mockReturnValue(query);
+    query.maxTimeMS.mockReturnValue(query);
+    query.exec.mockResolvedValue({
+      password: 'stored-hash',
+      externalIdentities: ['google:private-subject', 'github:123'],
+      externalAvatars: new Map([
+        ['google', photo],
+        ['apple', 'unused'],
+      ]),
+    });
+    model.findById.mockReturnValue(query);
+
+    const accountId = '000000000000000000000001';
+    expect(await service.getSignInMethods(accountId)).toStrictEqual({
+      hasPassword: true,
+      providers: [
+        { provider: 'google', avatarUrl: photo },
+        { provider: 'github', avatarUrl: undefined },
+      ],
+    });
+    expect(model.findById).toHaveBeenCalledWith(accountId);
   });
   it('provider-only accounts cannot use password sign-in', async () => {
     model.findOne.mockResolvedValue(account);

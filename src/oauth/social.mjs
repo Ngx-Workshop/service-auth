@@ -17,7 +17,7 @@ const providers = {
     token: 'https://oauth2.googleapis.com/token',
     issuer: 'https://accounts.google.com',
     jwks: 'https://www.googleapis.com/oauth2/v3/certs',
-    scope: 'openid email',
+    scope: 'openid email profile',
   },
   apple: {
     authorize: 'https://appleid.apple.com/auth/authorize',
@@ -79,6 +79,29 @@ async function json(url, options = {}) {
   return response.json();
 }
 
+function providerAvatar(name, value) {
+  if (typeof value !== 'string' || value.length > 2048) return {};
+  try {
+    const url = new URL(value);
+    const trustedHost =
+      name === 'google'
+        ? url.hostname.endsWith('.googleusercontent.com')
+        : name === 'github' &&
+          /^avatars\d*\.githubusercontent\.com$/.test(url.hostname);
+    if (
+      url.protocol === 'https:' &&
+      !url.username &&
+      !url.password &&
+      !url.port &&
+      trustedHost
+    )
+      return { avatarUrl: url.href };
+  } catch {
+    // An optional photo may be absent or unusable without affecting sign-in.
+  }
+  return {};
+}
+
 export async function providerIdentity(name, p, code, transaction, deps = {}) {
   const request = deps.json ?? json;
   let secret = p.secret;
@@ -117,7 +140,11 @@ export async function providerIdentity(name, p, code, transaction, deps = {}) {
     )?.email;
     if (!Number.isSafeInteger(user.id) || user.id <= 0 || !email)
       throw new Error('Verified email required');
-    return { subject: String(user.id), email: email.toLowerCase().trim() };
+    return {
+      subject: String(user.id),
+      email: email.toLowerCase().trim(),
+      ...providerAvatar(name, user.avatar_url),
+    };
   }
   const { payload } = await jwtVerify(tokens.id_token, p.keys, {
     issuer: p.issuer,
@@ -133,7 +160,11 @@ export async function providerIdentity(name, p, code, transaction, deps = {}) {
     typeof payload.email !== 'string'
   )
     throw new Error('Invalid identity');
-  return { subject: payload.sub, email: payload.email.toLowerCase().trim() };
+  return {
+    subject: payload.sub,
+    email: payload.email.toLowerCase().trim(),
+    ...providerAvatar(name, payload.picture),
+  };
 }
 
 function finish(res, accessToken, redirect) {
@@ -270,6 +301,7 @@ export async function installSocial(app, connection, auth, deps = {}) {
           name,
           identity.subject,
           identity.email,
+          ...(identity.avatarUrl ? [identity.avatarUrl] : []),
         );
         return finish(res, accessToken, transaction.redirect);
       } catch (error) {

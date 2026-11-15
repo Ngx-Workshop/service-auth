@@ -23,6 +23,9 @@ export class User {
   @Prop({ type: [String], default: undefined })
   externalIdentities?: string[];
 
+  @Prop({ type: Map, of: String })
+  externalAvatars?: Map<string, string>;
+
   @Prop({
     immutable: true,
     default: () => Date.now(),

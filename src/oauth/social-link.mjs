@@ -35,6 +35,7 @@ export function socialLink({
         accountId,
         subject: identity.subject,
         email: identity.email,
+        ...(identity.avatarUrl ? { avatarUrl: identity.avatarUrl } : {}),
         redirect,
         expiresAt: new Date(Date.now() + ttl),
       });
@@ -98,6 +99,7 @@ export function socialLink({
           transaction.subject,
           transaction.email,
           password,
+          ...(transaction.avatarUrl ? [transaction.avatarUrl] : []),
         );
         return finish(res, accessToken, transaction.redirect);
       } catch {
