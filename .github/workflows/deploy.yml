@@ -77,6 +77,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           persist-credentials: false
+      - name: Verify deployment cleanup policy
+        run: PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_cleanup_deployment.py
       - name: Check deployment configuration
         env:
           DROPLET_IP: ${{ secrets.DROPLET_IP }}
@@ -100,7 +102,7 @@ jobs:
           set -euo pipefail
           cd candidate
           sha256sum --check image.tar.sha256
-          cp ../scripts/production/promote-image.py ../scripts/production/install-social-credentials.py .
+          cp ../scripts/production/promote-image.py ../scripts/production/install-social-credentials.py ../scripts/cleanup-deployment.py .
       - name: Stage Google and GitHub server credentials
         env:
           SOCIAL_GOOGLE_CLIENT_ID: ${{ secrets.SOCIAL_GOOGLE_CLIENT_ID }}
@@ -116,7 +118,7 @@ jobs:
           username: root
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-          source: candidate/image.tar,candidate/image.tar.sha256,candidate/promote-image.py,candidate/install-social-credentials.py,candidate/social-credentials.json
+          source: candidate/image.tar,candidate/image.tar.sha256,candidate/promote-image.py,candidate/cleanup-deployment.py,candidate/install-social-credentials.py,candidate/social-credentials.json
           target: /opt/ngx-nestjs-services/ngx-auth-service/deployments/${{ github.sha }}
           strip_components: 1
           overwrite: true
@@ -133,10 +135,11 @@ jobs:
             set -eu
             umask 077
             cd /opt/ngx-nestjs-services/ngx-auth-service/deployments/${{ github.sha }}
-            trap 'rm -f social-credentials.json install-social-credentials.py' EXIT
+            trap 'rm -f social-credentials.json install-social-credentials.py image.tar image.tar.sha256' EXIT
             chmod 600 social-credentials.json
             python3 install-social-credentials.py social-credentials.json
             python3 promote-image.py auth "$PWD" '${{ github.sha }}'
+            python3 cleanup-deployment.py ngx-auth-service service-auth
             rm -f image.tar image.tar.sha256 promote-image.py
       - name: Remove runner credential transfer file
         if: always()
