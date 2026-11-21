@@ -1,4 +1,8 @@
 import {
+  configureObservability,
+  createServiceLogger,
+} from './observability/observability';
+import {
   assertLocalAdminMode,
   localAdminMode,
 } from './local-admin-development';
@@ -35,7 +39,9 @@ export async function createAuthApp() {
   assertLocalAdminMode();
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: false,
+    logger: createServiceLogger(),
   });
+  configureObservability(app);
   try {
     const configModule = await loadNative(
       pathToFileURL(join(__dirname, 'oauth/config.mjs')).href,
