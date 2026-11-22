@@ -25,6 +25,7 @@ import { UserAuthDto } from './dto/user-auth.dto';
 
 const cookieOptions = {
   domain: process.env.DOMAIN || 'localhost',
+  path: '/',
   secure: process.env.NODE_ENV === 'production',
   httpOnly: true,
   sameSite: true,
@@ -71,9 +72,10 @@ export class AuthenticationController {
 
   @Get('sign-out')
   @Auth(AuthType.None)
+  @Header('Cache-Control', 'no-store')
   @HttpCode(HttpStatus.OK)
   async signOut(@Res({ passthrough: true }) response: Response) {
-    response.clearCookie('accessToken');
+    response.clearCookie('accessToken', cookieOptions);
     response.end();
   }
 
