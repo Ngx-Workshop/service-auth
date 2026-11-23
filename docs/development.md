@@ -77,3 +77,5 @@ Maintenance local evidence is recorded in the
 from pinned Node 22 CI; local package-only installation is not a Docker image
 execution claim. Docker daemon and live Grafana acceptance remain external checks.
 Do not use paid provider calls or production writes as tests.
+
+Deployment and npm publication now follow [deployment-workflows](deployment-workflows.md).

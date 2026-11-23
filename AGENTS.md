@@ -30,3 +30,5 @@ NestJS module/domain boundaries, thin controllers, cohesive services, Prettier
 with Husky/lint-staged, CI checks and safe domain logging through existing
 observability. T001–T010 are verified locally; pinned Linux image/hosted CI and live
 Grafana receipt remain pending. Do not publish or deploy without authorization.
+
+Current deployment policy: [deployment-workflows](docs/deployment-workflows.md). Automatic main delivery verifies/deploys; npm publication is manual only. This supersedes older automatic-publishing instructions.

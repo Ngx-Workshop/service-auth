@@ -1,33 +1,40 @@
-name: Validate, deploy service, and explicitly publish package
-
+# Managed by ngx-workshop CLI. Policy v1; edit the central CLI profile, then run workflows --apply.
+name: "Verify, deploy and manually publish service-auth"
 on:
   pull_request:
+    branches:
+      - "main"
   push:
-    branches: [main]
+    branches:
+      - "main"
   workflow_dispatch:
     inputs:
-      publish:
-        description: Publish the validated package version through trusted OIDC
-        type: boolean
-        default: false
+      operation:
+        description: "Manual operation (main only); pushes verify and deploy automatically"
+        type: "choice"
+        required: true
+        default: "verify"
+        options:
+          - "verify"
+          - "deploy"
+          - "publish"
 permissions:
-  contents: read
-concurrency:
-  group: readiness-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  contents: "read"
 jobs:
   validate:
-    runs-on: ubuntu-24.04
+    permissions:
+      contents: "read"
+    runs-on: "ubuntu-24.04"
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020"
         with:
-          node-version: '22.23.5'
+          node-version: "22.23.5"
           package-manager-cache: false
-      - name: Install checksum-pinned isolated MongoDB test binary
+      - name: "Install checksum-pinned isolated MongoDB test binary"
         run: |
           set -euo pipefail
           curl --fail --location --proto '=https' --tlsv1.2 --output /tmp/mongo.tgz https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-ubuntu2404-8.0.17.tgz
@@ -35,7 +42,7 @@ jobs:
           mkdir -p /tmp/oauth-test-mongo
           tar -xzf /tmp/mongo.tgz --strip-components=1 -C /tmp/oauth-test-mongo
           echo '/tmp/oauth-test-mongo/bin' >> "$GITHUB_PATH"
-      - name: Install and validate auth and additive client
+      - name: "Install and validate auth and additive client"
         run: |
           npm ci
           npm run format:check
@@ -49,7 +56,7 @@ jobs:
           npm run lint:oauth
           npx eslint libs/ngx-auth-client/src/oauth-introspection.ts src/app.module.ts
           npm run lint:oauth:spike
-      - name: Build immutable candidate locally (never push)
+      - name: "Build immutable candidate locally (never push)"
         run: |
           docker build --label org.opencontainers.image.revision="$GITHUB_SHA" --tag service-auth:candidate .
           docker image inspect service-auth:candidate --format '{{.Id}}' > image-id.txt
@@ -57,36 +64,39 @@ jobs:
           docker run --rm --entrypoint sh service-auth:candidate -c 'test ! -e /usr/src/app/.oauth-local && test ! -e /usr/src/app/.env && test ! -e /usr/src/app/secrets'
           docker save service-auth:candidate > image.tar
           sha256sum image.tar > image.tar.sha256
-      - name: Retain candidate for review
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+      - name: "Retain candidate for review"
+        uses: "actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a"
         with:
-          name: service-auth-candidate-${{ github.sha }}
+          name: "service-auth-candidate-${{ github.sha }}"
           path: |
             image.tar
             image.tar.sha256
             image-id.txt
           retention-days: 3
-          if-no-files-found: error
-
+          if-no-files-found: "error"
+    env:
+      HUSKY: "0"
   deploy:
-    needs: validate
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    needs: "validate"
+    if: "github.ref == 'refs/heads/main' && (github.event_name == 'push' || (github.event_name == 'workflow_dispatch' && inputs.operation == 'deploy'))"
+    permissions:
+      contents: "read"
     concurrency:
-      group: service-auth-production
+      group: "readiness-${{ github.workflow }}-${{ github.ref }}"
       cancel-in-progress: false
+    runs-on: "ubuntu-24.04"
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
         with:
           persist-credentials: false
-      - name: Verify deployment cleanup policy
-        run: PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_cleanup_deployment.py
-      - name: Check deployment configuration
+      - name: "Verify deployment cleanup policy"
+        run: "PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_cleanup_deployment.py"
+      - name: "Check deployment configuration"
         env:
-          DROPLET_IP: ${{ secrets.DROPLET_IP }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-          SSH_HOST_FINGERPRINT: ${{ secrets.SSH_HOST_FINGERPRINT }}
+          DROPLET_IP: "${{ secrets.DROPLET_IP }}"
+          SSH_PRIVATE_KEY: "${{ secrets.SSH_PRIVATE_KEY }}"
+          SSH_HOST_FINGERPRINT: "${{ secrets.SSH_HOST_FINGERPRINT }}"
         run: |
           set -euo pipefail
           python3 - <<'PY'
@@ -95,45 +105,45 @@ jobs:
               if not os.environ.get(name):
                   raise SystemExit(f"::error::Missing required deployment secret: {name}")
           PY
-      - name: Download the validated image
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+      - name: "Download the validated image"
+        uses: "actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333"
         with:
-          name: service-auth-candidate-${{ github.sha }}
-          path: candidate
-      - name: Verify and stage promotion helper
+          name: "service-auth-candidate-${{ github.sha }}"
+          path: "candidate"
+      - name: "Verify and stage promotion helper"
         run: |
           set -euo pipefail
           cd candidate
           sha256sum --check image.tar.sha256
           cp ../scripts/production/promote-image.py ../scripts/production/install-social-credentials.py ../scripts/cleanup-deployment.py .
-      - name: Stage Google and GitHub server credentials
+      - name: "Stage Google and GitHub server credentials"
         env:
-          SOCIAL_GOOGLE_CLIENT_ID: ${{ secrets.SOCIAL_GOOGLE_CLIENT_ID }}
-          SOCIAL_GOOGLE_CLIENT_SECRET: ${{ secrets.SOCIAL_GOOGLE_CLIENT_SECRET }}
-          SOCIAL_GITHUB_CLIENT_ID: ${{ secrets.SOCIAL_GITHUB_CLIENT_ID }}
-          SOCIAL_GITHUB_CLIENT_SECRET: ${{ secrets.SOCIAL_GITHUB_CLIENT_SECRET }}
-        run: python3 scripts/production/stage-social-credentials.py candidate/social-credentials.json
-      - name: Transfer the validated image
-        uses: appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345
+          SOCIAL_GOOGLE_CLIENT_ID: "${{ secrets.SOCIAL_GOOGLE_CLIENT_ID }}"
+          SOCIAL_GOOGLE_CLIENT_SECRET: "${{ secrets.SOCIAL_GOOGLE_CLIENT_SECRET }}"
+          SOCIAL_GITHUB_CLIENT_ID: "${{ secrets.SOCIAL_GITHUB_CLIENT_ID }}"
+          SOCIAL_GITHUB_CLIENT_SECRET: "${{ secrets.SOCIAL_GITHUB_CLIENT_SECRET }}"
+        run: "python3 scripts/production/stage-social-credentials.py candidate/social-credentials.json"
+      - name: "Transfer the validated image"
+        uses: "appleboy/scp-action@ff85246acaad7bdce478db94a363cd2bf7c90345"
         with:
-          version: '1.8.0'
-          host: ${{ secrets.DROPLET_IP }}
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-          source: candidate/image.tar,candidate/image.tar.sha256,candidate/promote-image.py,candidate/cleanup-deployment.py,candidate/install-social-credentials.py,candidate/social-credentials.json
-          target: /opt/ngx-nestjs-services/ngx-auth-service/deployments/${{ github.sha }}
+          version: "1.8.0"
+          host: "${{ secrets.DROPLET_IP }}"
+          username: "root"
+          key: "${{ secrets.SSH_PRIVATE_KEY }}"
+          fingerprint: "${{ secrets.SSH_HOST_FINGERPRINT }}"
+          source: "candidate/image.tar,candidate/image.tar.sha256,candidate/promote-image.py,candidate/cleanup-deployment.py,candidate/install-social-credentials.py,candidate/social-credentials.json"
+          target: "/opt/ngx-nestjs-services/ngx-auth-service/deployments/${{ github.sha }}"
           strip_components: 1
           overwrite: true
-      - name: Promote image with persistent production configuration
-        uses: appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2
+      - name: "Promote image with persistent production configuration"
+        uses: "appleboy/ssh-action@0ff4204d59e8e51228ff73bce53f80d53301dee2"
         with:
-          version: '1.8.2'
-          host: ${{ secrets.DROPLET_IP }}
-          username: root
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          fingerprint: ${{ secrets.SSH_HOST_FINGERPRINT }}
-          command_timeout: 10m
+          version: "1.8.2"
+          host: "${{ secrets.DROPLET_IP }}"
+          username: "root"
+          key: "${{ secrets.SSH_PRIVATE_KEY }}"
+          fingerprint: "${{ secrets.SSH_HOST_FINGERPRINT }}"
+          command_timeout: "10m"
           script: |
             set -eu
             umask 077
@@ -144,33 +154,39 @@ jobs:
             python3 promote-image.py auth "$PWD" '${{ github.sha }}'
             python3 cleanup-deployment.py ngx-auth-service service-auth
             rm -f image.tar image.tar.sha256 promote-image.py
-      - name: Remove runner credential transfer file
-        if: always()
-        run: rm -f candidate/social-credentials.json
-
+      - name: "Remove runner credential transfer file"
+        if: "always()"
+        run: "rm -f candidate/social-credentials.json"
+    env:
+      HUSKY: "0"
   publish:
-    needs: validate
-    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' && inputs.publish
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    needs: "validate"
+    if: "github.ref == 'refs/heads/main' && github.event_name == 'workflow_dispatch' && inputs.operation == 'publish'"
     permissions:
-      contents: read
-      id-token: write
+      contents: "read"
+      id-token: "write"
+    concurrency:
+      group: "service-auth-publish"
+      cancel-in-progress: false
+    runs-on: "ubuntu-24.04"
+    timeout-minutes: 20
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1"
         with:
           persist-credentials: false
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+      - uses: "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020"
         with:
-          node-version: '22.23.5'
+          node-version: "22.23.5"
           package-manager-cache: false
-      - name: Build the committed release
+      - name: "Build the committed release"
         run: |
           npm install --global npm@12.1.0
           npm ci
           npm run build:ngx-auth-client
-      - name: Publish through trusted OIDC
-        working-directory: dist/libs/ngx-auth-client
+      - name: "Publish through trusted OIDC"
+        working-directory: "dist/libs/ngx-auth-client"
         env:
-          NPM_CONFIG_REGISTRY: https://registry.npmjs.org
-        run: npm publish --access public --provenance
+          NPM_CONFIG_REGISTRY: "https://registry.npmjs.org"
+        run: "npm publish --access public --provenance"
+    env:
+      HUSKY: "0"

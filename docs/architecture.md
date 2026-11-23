@@ -49,3 +49,5 @@ The native ESM OAuth engine and separately built ngx-auth-client module remain
 unchanged. No contract, claim, schema, social-linking policy, cookie, redirect,
 recovery or local-admin access behavior changed. This is a bounded maintainability
 audit, not certification of all existing code or a security audit.
+
+Generated deployment orchestration is centrally managed by the Node CLI; see [deployment-workflows](deployment-workflows.md).
