@@ -1,6 +1,48 @@
-import { ConsoleLogger, INestApplication, Logger } from '@nestjs/common';
+import {
+  ConsoleLogger,
+  HttpException,
+  INestApplication,
+  Logger,
+} from '@nestjs/common';
 import type { NextFunction, Request, Response } from 'express';
 import { randomUUID } from 'node:crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
+
+const requestContext = new AsyncLocalStorage<{ requestId: string }>();
+
+type DomainEvent =
+  | 'auth_password_sign_in'
+  | 'auth_role_update'
+  | 'user_metadata_upsert';
+
+export async function logOperation<T>(
+  logger: Pick<Logger, 'log' | 'warn' | 'error'>,
+  event: DomainEvent,
+  work: () => Promise<T>,
+  failureLevel: 'warn' | 'error' = 'error',
+): Promise<T> {
+  const started = process.hrtime.bigint();
+  const operationId = randomUUID();
+  const requestId = requestContext.getStore()?.requestId;
+  const entry = (outcome: string) => ({
+    event,
+    outcome,
+    operationId,
+    ...(requestId ? { requestId } : {}),
+    durationMs: Math.round(Number(process.hrtime.bigint() - started) / 1e6),
+  });
+  try {
+    const result = await work();
+    logger.log(entry(result === null ? 'not_found' : 'success'));
+    return result;
+  } catch (error) {
+    const rejected = error instanceof HttpException && error.getStatus() < 500;
+    logger[rejected ? 'warn' : failureLevel](
+      entry(rejected ? 'rejected' : 'failure'),
+    );
+    throw error;
+  }
+}
 
 export function createServiceLogger(): ConsoleLogger {
   return new ConsoleLogger({
@@ -38,7 +80,7 @@ export function httpLoggingMiddleware(logger = new Logger('HTTP')) {
       else if (entry.statusCode >= 400) logger.warn(entry);
       else logger.log(entry);
     });
-    next();
+    requestContext.run({ requestId }, next);
   };
 }
 

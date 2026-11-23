@@ -1,4 +1,5 @@
 import { AuthenticationService } from './authentication.service';
+import { UserMetadataService } from './user-metadata.service';
 import { model as mongooseModel } from 'mongoose';
 import { UserSchema } from './schemas/user.schema';
 import { Role } from '../enums/role.enum';
@@ -26,6 +27,7 @@ describe('Provider accounts', () => {
       {} as any,
       hash,
       jwt as any,
+      new UserMetadataService(),
     );
     jwt.signAsync.mockResolvedValue('token');
     jest.spyOn(service, 'ensureUserMetadata').mockResolvedValue(undefined);

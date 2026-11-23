@@ -38,6 +38,9 @@ jobs:
       - name: Install and validate auth and additive client
         run: |
           npm ci
+          npm run format:check
+          npm run lint:check
+          npm run test:maintenance
           npm audit --omit=dev --audit-level=high
           npm run test:oauth
           npm test -- --runInBand

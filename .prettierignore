@@ -1,0 +1,15 @@
+node_modules/
+dist/
+coverage/
+candidate/
+.oauth-local/
+secrets/
+package-lock.json
+eslint-suppressions.json
+**/*.tsbuildinfo
+**/generated/
+**/contracts/
+**/vendor/
+**/vendored/
+**/public/
+**/*.min.js

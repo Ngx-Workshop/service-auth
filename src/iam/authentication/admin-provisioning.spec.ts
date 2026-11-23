@@ -2,6 +2,7 @@ import { Reflector } from '@nestjs/core';
 import { RolesGuard } from '../authorization/guards/roles.guard';
 import { AuthenticationGuard } from './guards/authentication.guard';
 import { AuthenticationService } from './authentication.service';
+import { UserMetadataService } from './user-metadata.service';
 import { AuthenticationController } from './authentication.controller';
 import { Role } from '../enums/role.enum';
 import { AdminCreateUserDto } from './dto/admin-create-user.dto';
@@ -27,6 +28,7 @@ describe('Administrator account provisioning', () => {
       {} as any,
       hash,
       {} as any,
+      new UserMetadataService(),
     );
   });
   const account = {

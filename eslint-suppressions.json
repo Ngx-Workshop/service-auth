@@ -1,0 +1,56 @@
+{
+  "libs/ngx-auth-client/src/authentication.guard.ts": {
+    "@typescript-eslint/no-unsafe-assignment": { "count": 1 }
+  },
+  "libs/ngx-auth-client/src/decorators/active-user.decorator.ts": {
+    "@typescript-eslint/no-unsafe-assignment": { "count": 2 },
+    "@typescript-eslint/no-unsafe-member-access": { "count": 1 }
+  },
+  "libs/ngx-auth-client/src/ngx-auth-client.service.ts": {
+    "@typescript-eslint/no-unsafe-assignment": { "count": 4 },
+    "@typescript-eslint/no-unsafe-member-access": { "count": 9 },
+    "@typescript-eslint/no-unsafe-return": { "count": 1 },
+    "@typescript-eslint/no-unnecessary-type-assertion": { "count": 1 }
+  },
+  "libs/ngx-auth-client/src/ngx-remote-auth.guard.ts": {
+    "@typescript-eslint/no-unsafe-assignment": { "count": 1 }
+  },
+  "libs/ngx-auth-client/src/roles.guard.ts": {
+    "@typescript-eslint/no-unsafe-assignment": { "count": 1 },
+    "@typescript-eslint/no-unsafe-member-access": { "count": 1 }
+  },
+  "src/iam/authentication/admin-provisioning.spec.ts": {
+    "@typescript-eslint/unbound-method": { "count": 2 },
+    "@typescript-eslint/no-unsafe-assignment": { "count": 1 }
+  },
+  "src/iam/authentication/authentication.controller.ts": {
+    "@typescript-eslint/require-await": { "count": 2 }
+  },
+  "src/iam/authentication/authentication.service.ts": {
+    "@typescript-eslint/no-unsafe-member-access": { "count": 3 }
+  },
+  "src/iam/authentication/guards/access-token.guard.ts": {
+    "@typescript-eslint/no-unsafe-assignment": { "count": 2 },
+    "@typescript-eslint/no-unsafe-return": { "count": 1 }
+  },
+  "src/iam/authentication/guards/authentication.guard.ts": {
+    "@typescript-eslint/no-unsafe-assignment": { "count": 1 }
+  },
+  "src/iam/authentication/sign-out.spec.ts": {
+    "@typescript-eslint/no-unsafe-assignment": { "count": 2 }
+  },
+  "src/iam/authentication/social-login.spec.ts": {
+    "@typescript-eslint/unbound-method": { "count": 1 }
+  },
+  "src/iam/authorization/guards/roles.guard.ts": {
+    "@typescript-eslint/no-unsafe-assignment": { "count": 1 },
+    "@typescript-eslint/no-unsafe-member-access": { "count": 1 }
+  },
+  "src/iam/config/jwt.config.ts": {
+    "prettier/prettier": { "count": 1 }
+  },
+  "src/iam/decorators/active-user.decorator.ts": {
+    "@typescript-eslint/no-unsafe-assignment": { "count": 2 },
+    "@typescript-eslint/no-unsafe-member-access": { "count": 1 }
+  }
+}

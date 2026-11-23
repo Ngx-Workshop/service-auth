@@ -11,6 +11,8 @@ export default [
       'test/oauth/*.mjs',
       'scripts/oauth-local-config.mjs',
       'scripts/oauth-mongo-provision.mjs',
+      'scripts/maintenance/*.mjs',
+      'lint-staged.config.mjs',
     ],
     languageOptions: { sourceType: 'module', globals: globals.node },
   },

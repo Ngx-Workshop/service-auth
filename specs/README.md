@@ -1,9 +1,21 @@
 # Auth feature specifications
 
-| Feature | Status | Spec | Plan | Tasks | Handoff |
-| --- | --- | --- | --- | --- | --- |
-| 001 OAuth engine spike | Complete (spike scope) | [Spec](001-oauth-engine-spike/spec.md) | [Plan](001-oauth-engine-spike/plan.md) | [Tasks](001-oauth-engine-spike/tasks.md) | [Handoff](001-oauth-engine-spike/handoff.md) |
-| 002 OAuth implementation | Complete (local scope) | [Spec](002-oauth-implementation/spec.md) | [Plan](002-oauth-implementation/plan.md) | [Tasks](002-oauth-implementation/tasks.md) | [Handoff](002-oauth-implementation/handoff.md) |
-| 003 OAuth integration | Complete (local scope) | [Spec](003-oauth-integration/spec.md) | [Plan](003-oauth-integration/plan.md) | [Tasks](003-oauth-integration/tasks.md) | [Handoff](003-oauth-integration/handoff.md) |
-| 004 Deployment | Deployed/published; ChatGPT three-tool acceptance passed | [Spec](004-deployment/spec.md) | [Plan](004-deployment/plan.md) | [Tasks](004-deployment/tasks.md) | [Handoff](004-deployment/handoff.md) |
-| 005 Social website login | Implemented locally; production acceptance pending | [Spec](005-social-login/spec.md) | [Plan](005-social-login/plan.md) | [Tasks](005-social-login/tasks.md) | [Handoff](005-social-login/handoff.md) |
+## Next task: Code Maintenance
+
+Status: Implemented and verified locally on 2026-11-22. Pinned Linux image/hosted
+CI and live Grafana acceptance remain pending; see the handoff.
+
+[Spec](006-code-maintenance/spec.md) · [Plan](006-code-maintenance/plan.md) ·
+[Tasks](006-code-maintenance/tasks.md) · [Handoff](006-code-maintenance/handoff.md) ·
+[Reusable Copilot prompt](../.github/prompts/code-maintenance.prompt.md)
+
+T001–T010 have recorded local evidence. Review changes before any separately
+authorized publication/deployment. Older unfinished work retains its status below.
+
+| Feature                  | Status                                                   | Spec                                     | Plan                                     | Tasks                                      | Handoff                                        |
+| ------------------------ | -------------------------------------------------------- | ---------------------------------------- | ---------------------------------------- | ------------------------------------------ | ---------------------------------------------- |
+| 001 OAuth engine spike   | Complete (spike scope)                                   | [Spec](001-oauth-engine-spike/spec.md)   | [Plan](001-oauth-engine-spike/plan.md)   | [Tasks](001-oauth-engine-spike/tasks.md)   | [Handoff](001-oauth-engine-spike/handoff.md)   |
+| 002 OAuth implementation | Complete (local scope)                                   | [Spec](002-oauth-implementation/spec.md) | [Plan](002-oauth-implementation/plan.md) | [Tasks](002-oauth-implementation/tasks.md) | [Handoff](002-oauth-implementation/handoff.md) |
+| 003 OAuth integration    | Complete (local scope)                                   | [Spec](003-oauth-integration/spec.md)    | [Plan](003-oauth-integration/plan.md)    | [Tasks](003-oauth-integration/tasks.md)    | [Handoff](003-oauth-integration/handoff.md)    |
+| 004 Deployment           | Deployed/published; ChatGPT three-tool acceptance passed | [Spec](004-deployment/spec.md)           | [Plan](004-deployment/plan.md)           | [Tasks](004-deployment/tasks.md)           | [Handoff](004-deployment/handoff.md)           |
+| 005 Social website login | Implemented locally; production acceptance pending       | [Spec](005-social-login/spec.md)         | [Plan](005-social-login/plan.md)         | [Tasks](005-social-login/tasks.md)         | [Handoff](005-social-login/handoff.md)         |

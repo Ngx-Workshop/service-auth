@@ -12,6 +12,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { AccessTokenGuard } from './authentication/guards/access-token.guard';
 import { AuthenticationGuard } from './authentication/guards/authentication.guard';
 import { RolesGuard } from './authorization/guards/roles.guard';
+import { UserMetadataService } from './authentication/user-metadata.service';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { RolesGuard } from './authorization/guards/roles.guard';
     },
     AccessTokenGuard,
     AuthenticationService,
+    UserMetadataService,
   ],
   controllers: [AuthenticationController],
   exports: [AuthenticationService],

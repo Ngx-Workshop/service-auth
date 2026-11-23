@@ -1,4 +1,4 @@
-import { localAdminMode } from '../../local-admin-development';
+import { logOperation } from '../../observability/observability';
 import {
   ConflictException,
   Inject,
@@ -10,7 +10,6 @@ import {
 import { ConfigType } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectModel } from '@nestjs/mongoose';
-import axios from 'axios';
 import { Model, Types } from 'mongoose';
 import jwtConfig from '../config/jwt.config';
 import { MongoErrorCodes } from '../enums/mongo-error-codes.enum';
@@ -22,6 +21,7 @@ import { RoleDto } from './dto/role.dto';
 import { AdminCreateUserDto } from './dto/admin-create-user.dto';
 import { UserAuthDto } from './dto/user-auth.dto';
 import { User, UserDocument } from './schemas/user.schema';
+import { UserMetadataService } from './user-metadata.service';
 
 const signInProviders = ['google', 'github', 'apple'] as const;
 type SignInProvider = (typeof signInProviders)[number];
@@ -34,6 +34,7 @@ export class AuthenticationService {
     private readonly jwtConfiguration: ConfigType<typeof jwtConfig>,
     private readonly hashService: HashingService,
     private readonly jwtService: JwtService,
+    private readonly userMetadata: UserMetadataService,
   ) {}
 
   private oauthDummyHash: string;
@@ -45,24 +46,15 @@ export class AuthenticationService {
   }
 
   private readonly logger = new Logger(AuthenticationService.name);
-  private readonly metadataClient = axios.create({
-    baseURL: localAdminMode()
-      ? 'http://127.0.0.1:3004'
-      : process.env.USER_METADATA_URL,
-    timeout: 3000,
-  });
+  async ensureUserMetadata({ _id: uuid }: IUser, accessToken: string) {
+    await this.userMetadata.upsert(uuid, accessToken);
+  }
 
-  async ensureUserMetadata({ _id: uuid }: IUser, accessToken) {
-    try {
-      await this.metadataClient.put(
-        `/user-metadata`,
-        { uuid },
-        { headers: { Authorization: `Bearer ${accessToken}` } },
-      );
-    } catch {
-      // Keep bearer headers out of logs when the metadata service is unavailable.
-      this.logger.warn(`Failed to upsert UserMetadata for ${uuid}`);
-    }
+  async register(userAuthDto: UserAuthDto) {
+    const created = await this.signUp(userAuthDto);
+    const tokens = await this.signIn(userAuthDto);
+    await this.ensureUserMetadata(created, tokens.accessToken);
+    return tokens;
   }
 
   async provisionUser(dto: AdminCreateUserDto, actor: string) {
@@ -122,17 +114,20 @@ export class AuthenticationService {
   async signIn(
     userAuthDto: UserAuthDto,
   ): Promise<{ accessToken: string; refreshToken: string }> {
-    const user = await this.userModel.findOne({ email: userAuthDto.email });
-    if (!user) throw new UnauthorizedException('User not found');
-    if (!user.password) throw new UnauthorizedException('Invalid credentials');
+    return logOperation(this.logger, 'auth_password_sign_in', async () => {
+      const user = await this.userModel.findOne({ email: userAuthDto.email });
+      if (!user) throw new UnauthorizedException('User not found');
+      if (!user.password)
+        throw new UnauthorizedException('Invalid credentials');
 
-    const isPasswordValid = await this.hashService.compare(
-      userAuthDto.password,
-      user.password,
-    );
-    if (!isPasswordValid) throw new UnauthorizedException('Invalid password');
+      const isPasswordValid = await this.hashService.compare(
+        userAuthDto.password,
+        user.password,
+      );
+      if (!isPasswordValid) throw new UnauthorizedException('Invalid password');
 
-    return await this.generateTokens(user);
+      return this.generateTokens(user);
+    });
   }
 
   // OAuth uses the same account and password verifier, without minting legacy JWTs.
@@ -313,16 +308,14 @@ export class AuthenticationService {
   }
 
   async updateUserRole({ userId, role }: RoleDto) {
-    const updatedRole = await this.userModel
-      .findByIdAndUpdate(
-        new Types.ObjectId(userId),
-        { role },
-        { new: true, runValidators: true },
-      )
-      .exec();
-    this.logger.log(
-      `Updated user role: ${updatedRole?._id} -> ${updatedRole?.role}`,
+    return logOperation(this.logger, 'auth_role_update', async () =>
+      this.userModel
+        .findByIdAndUpdate(
+          new Types.ObjectId(userId),
+          { role },
+          { new: true, runValidators: true },
+        )
+        .exec(),
     );
-    return updatedRole;
   }
 }

@@ -5,7 +5,6 @@ import {
   Header,
   HttpCode,
   HttpStatus,
-  Logger,
   Post,
   Put,
   Res,
@@ -33,8 +32,6 @@ const cookieOptions = {
 
 @Controller()
 export class AuthenticationController {
-  logger = new Logger(AuthenticationController.name);
-
   constructor(private readonly authService: AuthenticationService) {}
 
   @Post('admin/users')
@@ -53,9 +50,7 @@ export class AuthenticationController {
     @Res({ passthrough: true }) response: Response,
     @Body() userAuthDto: UserAuthDto,
   ) {
-    const created = await this.authService.signUp(userAuthDto);
-    const jwt = await this.authService.signIn(userAuthDto);
-    await this.authService.ensureUserMetadata(created, jwt.accessToken);
+    const jwt = await this.authService.register(userAuthDto);
     response.cookie('accessToken', jwt.accessToken, cookieOptions);
   }
 
@@ -110,7 +105,6 @@ export class AuthenticationController {
     @Body(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
     role: RoleDto,
   ) {
-    this.logger.log(`Updating user role: ${JSON.stringify(role)}`);
     return this.authService.updateUserRole(role);
   }
 
